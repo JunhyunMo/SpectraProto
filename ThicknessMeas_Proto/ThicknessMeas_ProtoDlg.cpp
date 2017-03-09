@@ -409,6 +409,8 @@ void CThicknessMeas_ProtoDlg::OnBnClickedBtClosePm100d()
 		KillTimer(MESURE_POWER);
 		m_InstrHdl_PM100D = VI_NULL;
 		DisplayLog(L"-------------------------PM100D ViSession Close-------------------------");
+		SetDlgItemText(IDC_ST_PM100D_INFO,L"--");
+		SetDlgItemText(IDC_STATIC_POWER,L"--");
 	}
 }
 
@@ -593,6 +595,7 @@ void CThicknessMeas_ProtoDlg::OnBnClickedBtCloseCld1015()
 	 {
 		m_InstrHdl_CLD1015 = VI_NULL;
 		DisplayLog(L"-------------------------CLD1015 ViSession Close-------------------------");
+		SetDlgItemText(IDC_ST_CLD1015_INFO, L"--");
 	 }
 }
 
@@ -721,6 +724,7 @@ void CThicknessMeas_ProtoDlg::OnBnClickedBtClose()
 		DisplayLog(L"-------------------------I-MON Close-------------------------");
 		GetDlgItem(IDC_BT_OPEN)->EnableWindow(TRUE);
 		m_ftHandle = NULL;
+		SetDlgItemText(IDC_ST_IMON_INFO,L"--");
 	}
 	else
 	{
@@ -943,13 +947,13 @@ void CThicknessMeas_ProtoDlg::drawChart(CChartViewer *viewer)
 		m_nNGcount++;
 	}
 	
-    XYChart *c = new XYChart(600, 400, 0xf4f4f4, 0x000000, 1);
+    XYChart *c = new XYChart(700, 400, 0xf4f4f4, 0x000000, 1);
     c->setRoundedFrame(m_extBgColor);
     
-    // Set the plotarea at (55, 62) and of size 320 x 175 pixels. Use white (ffffff) 
+    // Set the plotarea at (55, 0) and of size 600 x 350 pixels. Use white (ffffff) 
     // background. Enable both horizontal and vertical grids by setting their colors to 
     // grey (cccccc). Set clipping mode to clip the data lines to the plot area.
-    c->setPlotArea(55, 0, 500, 350, 0xffffff, -1, -1, 0xcccccc, 0xcccccc);
+    c->setPlotArea(55, 0, 600, 350, 0xffffff, -1, -1, 0xcccccc, 0xcccccc);
     c->setClipping();
 
 	// Add a title to the chart using 15 pts Times New Roman Bold Italic font, with a light
