@@ -1,5 +1,5 @@
-
-// ThicknessMeas_ProtoDlg.cpp : ±¸Çö ÆÄÀÏ
+ï»¿
+// ThicknessMeas_ProtoDlg.cpp : êµ¬í˜„ íŒŒì¼
 //
 
 #include "stdafx.h"
@@ -20,20 +20,20 @@ static const int DataRateTimer = 1;
 static const int ChartUpdateTimer = 2;
 static const int DataInterval = 250;
 
-// ÀÀ¿ë ÇÁ·Î±×·¥ Á¤º¸¿¡ »ç¿ëµÇ´Â CAboutDlg ´ëÈ­ »óÀÚÀÔ´Ï´Ù.
+// ì‘ìš© í”„ë¡œê·¸ë¨ ì •ë³´ì— ì‚¬ìš©ë˜ëŠ” CAboutDlg ëŒ€í™” ìƒìì…ë‹ˆë‹¤.
 
 class CAboutDlg : public CDialogEx
 {
 public:
 	CAboutDlg();
 
-// ´ëÈ­ »óÀÚ µ¥ÀÌÅÍÀÔ´Ï´Ù.
+// ëŒ€í™” ìƒì ë°ì´í„°ì…ë‹ˆë‹¤.
 	enum { IDD = IDD_ABOUTBOX };
 
 	protected:
-	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV Áö¿øÀÔ´Ï´Ù.
+	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV ì§€ì›ì…ë‹ˆë‹¤.
 
-// ±¸ÇöÀÔ´Ï´Ù.
+// êµ¬í˜„ì…ë‹ˆë‹¤.
 protected:
 	DECLARE_MESSAGE_MAP()
 };
@@ -51,10 +51,11 @@ BEGIN_MESSAGE_MAP(CAboutDlg, CDialogEx)
 END_MESSAGE_MAP()
 
 
-// CThicknessMeas_ProtoDlg ´ëÈ­ »óÀÚ
+// CThicknessMeas_ProtoDlg ëŒ€í™” ìƒì
 
 CThicknessMeas_ProtoDlg::CThicknessMeas_ProtoDlg(CWnd* pParent /*=NULL*/)
 	: CDialogEx(CThicknessMeas_ProtoDlg::IDD, pParent)
+	, m_strMeasure(_T(""))
 {
 	m_hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
 
@@ -72,6 +73,7 @@ void CThicknessMeas_ProtoDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_LIST_LOG, m_ctlListLog);
 	DDX_Control(pDX, IDC_STATIC_POWER, m_ctlSTpower);
 	DDX_Control(pDX, IDC_CHART, m_ChartViewer);
+	DDX_Text(pDX, IDC_EDIT_MEAS, m_strMeasure);
 }
 
 BEGIN_MESSAGE_MAP(CThicknessMeas_ProtoDlg, CDialogEx)
@@ -92,18 +94,19 @@ BEGIN_MESSAGE_MAP(CThicknessMeas_ProtoDlg, CDialogEx)
 	ON_BN_CLICKED(IDC_BT_QUIT, &CThicknessMeas_ProtoDlg::OnBnClickedBtQuit)
 	ON_CONTROL(CVN_ViewPortChanged, IDC_CHART, OnViewPortChanged)
 	ON_BN_CLICKED(IDC_BT_WR_CMD, &CThicknessMeas_ProtoDlg::OnBnClickedBtWrCmd)
+	ON_BN_CLICKED(IDC_BT_SET_WAV_RANGE, &CThicknessMeas_ProtoDlg::OnBnClickedBtSetWavRange)
 END_MESSAGE_MAP()
 
 
-// CThicknessMeas_ProtoDlg ¸Ş½ÃÁö Ã³¸®±â
+// CThicknessMeas_ProtoDlg ë©”ì‹œì§€ ì²˜ë¦¬ê¸°
 
 BOOL CThicknessMeas_ProtoDlg::OnInitDialog()
 {
 	CDialogEx::OnInitDialog();
 
-	// ½Ã½ºÅÛ ¸Ş´º¿¡ "Á¤º¸..." ¸Ş´º Ç×¸ñÀ» Ãß°¡ÇÕ´Ï´Ù.
+	// ì‹œìŠ¤í…œ ë©”ë‰´ì— "ì •ë³´..." ë©”ë‰´ í•­ëª©ì„ ì¶”ê°€í•©ë‹ˆë‹¤.
 
-	// IDM_ABOUTBOX´Â ½Ã½ºÅÛ ¸í·É ¹üÀ§¿¡ ÀÖ¾î¾ß ÇÕ´Ï´Ù.
+	// IDM_ABOUTBOXëŠ” ì‹œìŠ¤í…œ ëª…ë ¹ ë²”ìœ„ì— ìˆì–´ì•¼ í•©ë‹ˆë‹¤.
 	ASSERT((IDM_ABOUTBOX & 0xFFF0) == IDM_ABOUTBOX);
 	ASSERT(IDM_ABOUTBOX < 0xF000);
 
@@ -121,17 +124,17 @@ BOOL CThicknessMeas_ProtoDlg::OnInitDialog()
 		}
 	}
 
-	// ÀÌ ´ëÈ­ »óÀÚÀÇ ¾ÆÀÌÄÜÀ» ¼³Á¤ÇÕ´Ï´Ù. ÀÀ¿ë ÇÁ·Î±×·¥ÀÇ ÁÖ Ã¢ÀÌ ´ëÈ­ »óÀÚ°¡ ¾Æ´Ò °æ¿ì¿¡´Â
-	//  ÇÁ·¹ÀÓ¿öÅ©°¡ ÀÌ ÀÛ¾÷À» ÀÚµ¿À¸·Î ¼öÇàÇÕ´Ï´Ù.
-	SetIcon(m_hIcon, TRUE);			// Å« ¾ÆÀÌÄÜÀ» ¼³Á¤ÇÕ´Ï´Ù.
-	SetIcon(m_hIcon, FALSE);		// ÀÛÀº ¾ÆÀÌÄÜÀ» ¼³Á¤ÇÕ´Ï´Ù.
+	// ì´ ëŒ€í™” ìƒìì˜ ì•„ì´ì½˜ì„ ì„¤ì •í•©ë‹ˆë‹¤. ì‘ìš© í”„ë¡œê·¸ë¨ì˜ ì£¼ ì°½ì´ ëŒ€í™” ìƒìê°€ ì•„ë‹ ê²½ìš°ì—ëŠ”
+	//  í”„ë ˆì„ì›Œí¬ê°€ ì´ ì‘ì—…ì„ ìë™ìœ¼ë¡œ ìˆ˜í–‰í•©ë‹ˆë‹¤.
+	SetIcon(m_hIcon, TRUE);			// í° ì•„ì´ì½˜ì„ ì„¤ì •í•©ë‹ˆë‹¤.
+	SetIcon(m_hIcon, FALSE);		// ì‘ì€ ì•„ì´ì½˜ì„ ì„¤ì •í•©ë‹ˆë‹¤.
 
-	//font Á¶Á¤ 
+	//font ì¡°ì • 
 	 m_Font.CreateFont(26, 0, 0, 0, FW_BOLD, FALSE, FALSE, 0, DEFAULT_CHARSET,
                                     OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY, 
-                                    DEFAULT_PITCH | FF_SWISS, L"±¼¸²Ã¼");
+                                    DEFAULT_PITCH | FF_SWISS, L"êµ´ë¦¼ì²´");
 
-    // ¹öÆ°°´Ã¼ÀÇ SetFont() ÇÔ¼ö¸¦ ÀÌ¿ëÇÏ¿© »ı¼ºÇÑ ÆùÆ®¸¦ Àû¿ë½ÃÅ²´Ù.
+    // ë²„íŠ¼ê°ì²´ì˜ SetFont() í•¨ìˆ˜ë¥¼ ì´ìš©í•˜ì—¬ ìƒì„±í•œ í°íŠ¸ë¥¼ ì ìš©ì‹œí‚¨ë‹¤.
     m_ctlSTpower.SetFont(&m_Font, TRUE);
 
 	//Chart
@@ -150,7 +153,7 @@ BOOL CThicknessMeas_ProtoDlg::OnInitDialog()
 	 // Initialize member variables
     m_extBgColor = getDefaultBgColor();     // Default background color
 
-	return TRUE;  // Æ÷Ä¿½º¸¦ ÄÁÆ®·Ñ¿¡ ¼³Á¤ÇÏÁö ¾ÊÀ¸¸é TRUE¸¦ ¹İÈ¯ÇÕ´Ï´Ù.
+	return TRUE;  // í¬ì»¤ìŠ¤ë¥¼ ì»¨íŠ¸ë¡¤ì— ì„¤ì •í•˜ì§€ ì•Šìœ¼ë©´ TRUEë¥¼ ë°˜í™˜í•©ë‹ˆë‹¤.
 }
 
 void CThicknessMeas_ProtoDlg::OnSysCommand(UINT nID, LPARAM lParam)
@@ -166,19 +169,19 @@ void CThicknessMeas_ProtoDlg::OnSysCommand(UINT nID, LPARAM lParam)
 	}
 }
 
-// ´ëÈ­ »óÀÚ¿¡ ÃÖ¼ÒÈ­ ´ÜÃß¸¦ Ãß°¡ÇÒ °æ¿ì ¾ÆÀÌÄÜÀ» ±×¸®·Á¸é
-//  ¾Æ·¡ ÄÚµå°¡ ÇÊ¿äÇÕ´Ï´Ù. ¹®¼­/ºä ¸ğµ¨À» »ç¿ëÇÏ´Â MFC ÀÀ¿ë ÇÁ·Î±×·¥ÀÇ °æ¿ì¿¡´Â
-//  ÇÁ·¹ÀÓ¿öÅ©¿¡¼­ ÀÌ ÀÛ¾÷À» ÀÚµ¿À¸·Î ¼öÇàÇÕ´Ï´Ù.
+// ëŒ€í™” ìƒìì— ìµœì†Œí™” ë‹¨ì¶”ë¥¼ ì¶”ê°€í•  ê²½ìš° ì•„ì´ì½˜ì„ ê·¸ë¦¬ë ¤ë©´
+//  ì•„ë˜ ì½”ë“œê°€ í•„ìš”í•©ë‹ˆë‹¤. ë¬¸ì„œ/ë·° ëª¨ë¸ì„ ì‚¬ìš©í•˜ëŠ” MFC ì‘ìš© í”„ë¡œê·¸ë¨ì˜ ê²½ìš°ì—ëŠ”
+//  í”„ë ˆì„ì›Œí¬ì—ì„œ ì´ ì‘ì—…ì„ ìë™ìœ¼ë¡œ ìˆ˜í–‰í•©ë‹ˆë‹¤.
 
 void CThicknessMeas_ProtoDlg::OnPaint()
 {
 	if (IsIconic())
 	{
-		CPaintDC dc(this); // ±×¸®±â¸¦ À§ÇÑ µğ¹ÙÀÌ½º ÄÁÅØ½ºÆ®ÀÔ´Ï´Ù.
+		CPaintDC dc(this); // ê·¸ë¦¬ê¸°ë¥¼ ìœ„í•œ ë””ë°”ì´ìŠ¤ ì»¨í…ìŠ¤íŠ¸ì…ë‹ˆë‹¤.
 
 		SendMessage(WM_ICONERASEBKGND, reinterpret_cast<WPARAM>(dc.GetSafeHdc()), 0);
 
-		// Å¬¶óÀÌ¾ğÆ® »ç°¢Çü¿¡¼­ ¾ÆÀÌÄÜÀ» °¡¿îµ¥¿¡ ¸ÂÃä´Ï´Ù.
+		// í´ë¼ì´ì–¸íŠ¸ ì‚¬ê°í˜•ì—ì„œ ì•„ì´ì½˜ì„ ê°€ìš´ë°ì— ë§ì¶¥ë‹ˆë‹¤.
 		int cxIcon = GetSystemMetrics(SM_CXICON);
 		int cyIcon = GetSystemMetrics(SM_CYICON);
 		CRect rect;
@@ -186,7 +189,7 @@ void CThicknessMeas_ProtoDlg::OnPaint()
 		int x = (rect.Width() - cxIcon + 1) / 2;
 		int y = (rect.Height() - cyIcon + 1) / 2;
 
-		// ¾ÆÀÌÄÜÀ» ±×¸³´Ï´Ù.
+		// ì•„ì´ì½˜ì„ ê·¸ë¦½ë‹ˆë‹¤.
 		dc.DrawIcon(x, y, m_hIcon);
 	}
 	else
@@ -195,8 +198,8 @@ void CThicknessMeas_ProtoDlg::OnPaint()
 	}
 }
 
-// »ç¿ëÀÚ°¡ ÃÖ¼ÒÈ­µÈ Ã¢À» ²ô´Â µ¿¾È¿¡ Ä¿¼­°¡ Ç¥½ÃµÇµµ·Ï ½Ã½ºÅÛ¿¡¼­
-//  ÀÌ ÇÔ¼ö¸¦ È£ÃâÇÕ´Ï´Ù.
+// ì‚¬ìš©ìê°€ ìµœì†Œí™”ëœ ì°½ì„ ë„ëŠ” ë™ì•ˆì— ì»¤ì„œê°€ í‘œì‹œë˜ë„ë¡ ì‹œìŠ¤í…œì—ì„œ
+//  ì´ í•¨ìˆ˜ë¥¼ í˜¸ì¶œí•©ë‹ˆë‹¤.
 HCURSOR CThicknessMeas_ProtoDlg::OnQueryDragIcon()
 {
 	return static_cast<HCURSOR>(m_hIcon);
@@ -218,7 +221,7 @@ void CThicknessMeas_ProtoDlg::DisplayLog(CString str)
 
 void CThicknessMeas_ProtoDlg::OnTimer(UINT_PTR nIDEvent)
 {
-	// TODO: ¿©±â¿¡ ¸Ş½ÃÁö Ã³¸®±â ÄÚµå¸¦ Ãß°¡ ¹×/¶Ç´Â ±âº»°ªÀ» È£ÃâÇÕ´Ï´Ù.
+	// TODO: ì—¬ê¸°ì— ë©”ì‹œì§€ ì²˜ë¦¬ê¸° ì½”ë“œë¥¼ ì¶”ê°€ ë°/ë˜ëŠ” ê¸°ë³¸ê°’ì„ í˜¸ì¶œí•©ë‹ˆë‹¤.
 	switch(nIDEvent)
 	{
 		case MESURE_POWER:
@@ -245,7 +248,7 @@ void CThicknessMeas_ProtoDlg::OnTimer(UINT_PTR nIDEvent)
 
 void CThicknessMeas_ProtoDlg::OnClose()
 {
-	// TODO: ¿©±â¿¡ ¸Ş½ÃÁö Ã³¸®±â ÄÚµå¸¦ Ãß°¡ ¹×/¶Ç´Â ±âº»°ªÀ» È£ÃâÇÕ´Ï´Ù.
+	// TODO: ì—¬ê¸°ì— ë©”ì‹œì§€ ì²˜ë¦¬ê¸° ì½”ë“œë¥¼ ì¶”ê°€ ë°/ë˜ëŠ” ê¸°ë³¸ê°’ì„ í˜¸ì¶œí•©ë‹ˆë‹¤.
 
 	if(m_InstrHdl_PM100D != VI_NULL)
 	{
@@ -500,7 +503,7 @@ ViStatus CThicknessMeas_ProtoDlg::Get_CLD1015_Device_ID(ViSession instrHdl)
 }
 void CThicknessMeas_ProtoDlg::OnBnClickedBtInitCld1015()
 {
-	// TODO: ¿©±â¿¡ ÄÁÆ®·Ñ ¾Ë¸² Ã³¸®±â ÄÚµå¸¦ Ãß°¡ÇÕ´Ï´Ù.
+	// TODO: ì—¬ê¸°ì— ì»¨íŠ¸ë¡¤ ì•Œë¦¼ ì²˜ë¦¬ê¸° ì½”ë“œë¥¼ ì¶”ê°€í•©ë‹ˆë‹¤.
    ViStatus    err;
    ViChar      *rscPtr;
 
@@ -579,7 +582,7 @@ void CThicknessMeas_ProtoDlg::OnBnClickedBtInitCld1015()
 
 void CThicknessMeas_ProtoDlg::OnBnClickedBtCloseCld1015()
 {
-	// TODO: ¿©±â¿¡ ÄÁÆ®·Ñ ¾Ë¸² Ã³¸®±â ÄÚµå¸¦ Ãß°¡ÇÕ´Ï´Ù.
+	// TODO: ì—¬ê¸°ì— ì»¨íŠ¸ë¡¤ ì•Œë¦¼ ì²˜ë¦¬ê¸° ì½”ë“œë¥¼ ì¶”ê°€í•©ë‹ˆë‹¤.
 	if(m_bLaser == TRUE)
 	 {
 		OnBnClickedMfcbtLaser();
@@ -701,11 +704,13 @@ void CThicknessMeas_ProtoDlg::OnBnClickedBtOpen()
 		// FT_Open OK, use ftHandle to access device 
 		DisplayLog(L"-------------------------I-MON open-------------------------");
 		GetDlgItem(IDC_BT_OPEN)->EnableWindow(FALSE);
-		CString strDeviceID = GetCommand(L"*IDN?");
-		CString strFWver = GetCommand(L"*VERS?");
+		CString strDeviceID = WriteFwCommand(L"*IDN?");
+		CString strFWver = WriteFwCommand(L"*VERS?");
 		CString str;
 		str.Format(L"%s / %s", strDeviceID, strFWver);
 		SetDlgItemText(IDC_ST_IMON_INFO,str);
+
+		GetWavRange(); //Get wavelength range - *CONFigure:WRANge wbeg wend wstp <CR>
 
 	}
 	else 
@@ -734,7 +739,7 @@ void CThicknessMeas_ProtoDlg::OnBnClickedBtClose()
 
 void CThicknessMeas_ProtoDlg::OnBnClickedBtDummyMeas()
 {
-	// TODO: ¿©±â¿¡ ÄÁÆ®·Ñ ¾Ë¸² Ã³¸®±â ÄÚµå¸¦ Ãß°¡ÇÕ´Ï´Ù.
+
 	if(m_ftHandle == NULL)
 	{
 		MessageBox(L"Device not opened.", L"Warning", MB_OK | MB_ICONWARNING);
@@ -742,7 +747,6 @@ void CThicknessMeas_ProtoDlg::OnBnClickedBtDummyMeas()
 	}
 	
 	SetTimer(DUMMY_MEASURE,500,NULL);
-	//DummyMeasure();
 }
 
 CString CThicknessMeas_ProtoDlg::DummyMeasure()
@@ -750,9 +754,11 @@ CString CThicknessMeas_ProtoDlg::DummyMeasure()
 	CString strReturn = L"";
 	CString strLog = L""; 
 	CString strCmd = 
-		L"*MEASure:DARKspectra 100 1 4"; //Run dark measurement, tint ¡Á 0 output\r\noutput of data according to defined format
-	
-    m_strData = GetCommand(strCmd);
+		//L"*MEASure:DARKspectra 1 1 4"; //Run dark measurement, tint â‰  0 output\r\noutput of data according to defined format
+	    //L"*MEASure:LIGHTspectra 1 1 4"; //Run light measurement (exposured spectrum â€“ with opened shutter or lamp switched on)
+		L"*MEASure 1 1 4"; //Run measurement with parameters and output of data according to define format
+
+    m_strData = WriteFwCommand(strCmd);
 
 	drawChart(&m_ChartViewer);
 	
@@ -779,7 +785,7 @@ void CThicknessMeas_ProtoDlg::OnBnClickedBtWrCmd()
 	GetDlgItemText(IDC_EDIT_GET_CMD,strCmd);
 	if(strCmd.GetLength() > 0)
 	{	
-		GetCommand(strCmd);		
+		WriteFwCommand(strCmd);		
 	}
 	else
 	{
@@ -788,7 +794,7 @@ void CThicknessMeas_ProtoDlg::OnBnClickedBtWrCmd()
 	}
 }
 
-CString CThicknessMeas_ProtoDlg::GetCommand(CString strCmd)
+CString CThicknessMeas_ProtoDlg::WriteFwCommand(CString strCmd)
 {
 	strCmd += L"\r";
 
@@ -856,6 +862,45 @@ CString CThicknessMeas_ProtoDlg::GetCommand(CString strCmd)
 	}
 	return strRet;
 }
+
+void CThicknessMeas_ProtoDlg::GetWavRange()
+{
+	CString str = WriteFwCommand(L"*CONFigure:WRANge?");
+	str.Replace(L"\r",L"\r\n");
+
+	SetDlgItemText(IDC_ST_WAV_RANGE,str);
+}
+
+void CThicknessMeas_ProtoDlg::SetWavRange(int wbeg, int wend, int wstep)
+{
+	CString strCMD, str1,str2,str3;
+	strCMD.Format(L"*CONFigure:BEGin %d", wbeg);
+	str1 = WriteFwCommand(strCMD);
+	strCMD.Format(L"*CONFigure:END %d", wend);
+	str2 = WriteFwCommand(strCMD);
+	strCMD.Format(L"*CONFigure:WSTP %d", wend);
+	str3 = WriteFwCommand(strCMD);
+
+	if(str1.Left(1) == 0x06 && str2.Left(1) == 0x06 && str3.Left(1) == 0x06) //ACK
+	{
+		m_strMeasure = L"Wavelength range is configured.";
+	}
+	else
+		m_strMeasure = L"Wavelength range configuration failed.";
+
+	UpdateData(FALSE);
+}
+
+void CThicknessMeas_ProtoDlg::OnBnClickedBtSetWavRange()
+{
+	int nWbeg = GetDlgItemInt(IDC_EDIT_WBEG);
+	int nWend = GetDlgItemInt(IDC_EDIT_WEND);
+	int nWstep = GetDlgItemInt(IDC_EDIT_WSTEP);
+	SetWavRange(nWbeg,nWend,nWstep);
+
+	GetWavRange();
+}
+
 //////////////////////////Chart
 // View port changed event
 void CThicknessMeas_ProtoDlg::OnViewPortChanged()
@@ -981,7 +1026,7 @@ void CThicknessMeas_ProtoDlg::drawChart(CChartViewer *viewer)
 	c->addAreaLayer(DoubleArray(m_Data, (int)(sizeof(m_Data) / sizeof(m_Data[0]))),
         0x80ff0000, "", 3);
 
-	m_ChartViewer.setChart(c);  //m_chartView¿¡ Chart¸¦ º¸¿©ÁÖ±â À§ÇÑ ÄÚµå
+	m_ChartViewer.setChart(c);  //m_chartViewì— Chartë¥¼ ë³´ì—¬ì£¼ê¸° ìœ„í•œ ì½”ë“œ
 
 	ZeroMemory(m_Data,sizeof(m_Data));
 	delete c;

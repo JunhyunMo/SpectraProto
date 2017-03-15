@@ -58,7 +58,9 @@ protected:
 	FT_HANDLE m_ftHandle;
 	int		  m_nTotalScan,m_nNGcount;
 	CString	  DummyMeasure();
-	CString   GetCommand(CString strCmd);
+	CString   WriteFwCommand(CString strCmd);
+	void	  GetWavRange();
+	void	  SetWavRange(int wbeg, int wend, int wstep);
 
 	//chart
 	CChartViewer m_ChartViewer;
@@ -94,4 +96,6 @@ public:
 	afx_msg void OnBnClickedBtDummyMeas();
 	afx_msg void OnBnClickedBtQuit();
 	afx_msg void OnBnClickedBtWrCmd();
+	afx_msg void OnBnClickedBtSetWavRange();
+	CString m_strMeasure;
 };
