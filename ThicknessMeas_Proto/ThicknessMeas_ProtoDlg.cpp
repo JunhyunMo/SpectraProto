@@ -710,7 +710,7 @@ void CThicknessMeas_ProtoDlg::OnBnClickedBtOpen()
 		str.Format(L"%s / %s", strDeviceID, strFWver);
 		SetDlgItemText(IDC_ST_IMON_INFO,str);
 
-		GetWavRange(); //Get wavelength range - *CONFigure:WRANge wbeg wend wstp <CR>
+		GetMeasConfig();
 
 	}
 	else 
@@ -746,7 +746,8 @@ void CThicknessMeas_ProtoDlg::OnBnClickedBtDummyMeas()
 		return;
 	}
 	
-	SetTimer(DUMMY_MEASURE,500,NULL);
+	//SetTimer(DUMMY_MEASURE,500,NULL);
+	DummyMeasure();
 }
 
 CString CThicknessMeas_ProtoDlg::DummyMeasure()
@@ -754,9 +755,9 @@ CString CThicknessMeas_ProtoDlg::DummyMeasure()
 	CString strReturn = L"";
 	CString strLog = L""; 
 	CString strCmd = 
-		//L"*MEASure:DARKspectra 1 1 4"; //Run dark measurement, tint ≠ 0 output\r\noutput of data according to defined format
+		L"*MEASure:DARKspectra 1 1 4"; //Run dark measurement, tint ≠ 0 output\r\noutput of data according to defined format
 	    //L"*MEASure:LIGHTspectra 1 1 4"; //Run light measurement (exposured spectrum – with opened shutter or lamp switched on)
-		L"*MEASure 1 1 4"; //Run measurement with parameters and output of data according to define format
+		//L"*MEASure 1 1 4"; //Run measurement with parameters and output of data according to define format
 
     m_strData = WriteFwCommand(strCmd);
 
@@ -863,12 +864,25 @@ CString CThicknessMeas_ProtoDlg::WriteFwCommand(CString strCmd)
 	return strRet;
 }
 
+void  CThicknessMeas_ProtoDlg::GetMeasConfig()
+{
+	GetWavRange(); //Get wavelength range - *CONFigure:WRANge wbeg wend wstp <CR>
+	GetTint(); //
+}
+
 void CThicknessMeas_ProtoDlg::GetWavRange()
 {
 	CString str = WriteFwCommand(L"*CONFigure:WRANge?");
 	str.Replace(L"\r",L"\r\n");
 
 	SetDlgItemText(IDC_ST_WAV_RANGE,str);
+}
+
+void CThicknessMeas_ProtoDlg::GetTint() //Get Integration time (exposure time of detector)
+{
+	CString str = WriteFwCommand(L"*para:tint?");
+	
+	SetDlgItemText(IDC_EDIT_TINT,str);
 }
 
 void CThicknessMeas_ProtoDlg::SetWavRange(int wbeg, int wend, int wstep)

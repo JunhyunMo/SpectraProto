@@ -59,8 +59,11 @@ protected:
 	int		  m_nTotalScan,m_nNGcount;
 	CString	  DummyMeasure();
 	CString   WriteFwCommand(CString strCmd);
+	
+	void      GetMeasConfig();
 	void	  GetWavRange();
 	void	  SetWavRange(int wbeg, int wend, int wstep);
+	void      GetTint();
 
 	//chart
 	CChartViewer m_ChartViewer;
