@@ -1237,8 +1237,8 @@ void CThicknessMeas_ProtoDlg::DrawFFTChart(CChartViewer *viewer)
     b->setWidth(520);
 
     // Configure the y-axis with a 10pts Arial Bold axis title
-	c->xAxis()->setTitle("Pixel","arialbd.ttf", 10);
-    c->yAxis()->setTitle("?", "arialbd.ttf", 10);
+	c->xAxis()->setTitle("Pixel no","arialbd.ttf", 10);
+    c->yAxis()->setTitle("Amplitude [counts]", "arialbd.ttf", 10);
 
     // Configure the x-axis to auto-scale with at least 75 pixels between major tick and 
     // 15  pixels between minor ticks. This shows more minor grid lines on the chart.
@@ -1315,9 +1315,9 @@ WORD MAKE_WORD( const BYTE Byte_hi, const BYTE Byte_lo)
 void CThicknessMeas_ProtoDlg::OnBnClickedBtFft()
 {
 	//WreteFwCommand body
-CString strCmd = L"*PARAmeter:FFTPARAmeter 3000 10 1000";
-WriteFwCommand(strCmd);
-strCmd = L"*MEASure:FSTMEASure";
+	CString strCmd = L"*PARAmeter:FFTPARAmeter 3000 10 1000";
+	WriteFwCommand(strCmd);
+	strCmd = L"*MEASure:FSTMEASure";
 
 //strCmd = L"*CONFigure:FORMat 5";
 //WriteFwCommand(strCmd);
@@ -1349,16 +1349,16 @@ strCmd = L"*MEASure:FSTMEASure";
 		DisplayLog(strLog);
 	}
 
-	DWORD RxBytes = 1024*10;
+	DWORD RxBytes = 1024+1;
 	DWORD BytesReceived; 
 
-	//char RxBuffer[1024*10];
-	BYTE RxBuffer[1024*10];
+	//BYTE RxBuffer[1024*10];
+	BYTE RxBuffer[1024+1];
 	::ZeroMemory(RxBuffer, sizeof(RxBuffer));
 
-	//TCHAR TRxBuffer[256*2];
-	TCHAR TRxBuffer[1024*20];
-	::ZeroMemory(TRxBuffer, sizeof(TRxBuffer));
+	//의미 없음.
+	/*TCHAR TRxBuffer[1024*20];
+	::ZeroMemory(TRxBuffer, sizeof(TRxBuffer));*/
 	
 	//FT_GetStatus(m_ftHandle,&RxBytes,&TxBytes,&EventDWord);
 	//double nElapse = 0.2*1000; //read with a timeout of 0.2 seconds
@@ -1392,14 +1392,14 @@ strCmd = L"*MEASure:FSTMEASure";
 			strLog.Format(L"%s",TRxBuffer);
 			strRet.Format(L"%s",TRxBuffer);*/
 			DisplayLog(strLog);
-			if(strRet.Left(1) == 0x15) //15 hex - NACK
-			{
-				SetDlgItemText(IDC_EDIT_MEAS,L"NACK");
-			}
-			else // [06 hex - ACK] data  
-			{
-				SetDlgItemText(IDC_EDIT_MEAS,strRet);
-			}
+			//if(strRet.Left(1) == 0x15) //15 hex - NACK
+			//{
+			//	SetDlgItemText(IDC_EDIT_MEAS,L"NACK");
+			//}
+			//else // [06 hex - ACK] data  
+			//{
+			//	SetDlgItemText(IDC_EDIT_MEAS,strRet);
+			//}
 		} 
 		else 
 		{ 
