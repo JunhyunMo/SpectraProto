@@ -67,11 +67,15 @@ protected:
 
 	//chart
 	CChartViewer m_ChartViewer;
-	CString		 m_strData;
-	double		 m_Data[512];
+	CString		 m_strData,m_strCmd,m_strChartTitle;
+	double		 m_nDataArray[512];
+	double		 m_nXDataArray[512], m_nYDataArray[512];
+	//WORD         m_nXData[512], m_nYData[512];
+	char		 m_ChTitle;
 
 	void getData();
-	void drawChart(CChartViewer *viewer);
+	void DrawChartFormat4(CChartViewer *viewer); //format4 (ASCII output, separated by <CR>)
+	void DrawChartFormat7(CChartViewer *viewer); //format7 (ASCII output with wavelength, separated by <CR>)
 	
 private:
     CFont m_Font;
@@ -81,6 +85,7 @@ private:
 	double m_nextDataTime;  // Used by the random number generator to generate real time data.
 	// utility to get default background color
 	int getDefaultBgColor();
+	void DrawFFTChart(CChartViewer *viewer);
 
 public:
 	afx_msg void OnBnClickedBtInitPm100d();
@@ -101,4 +106,6 @@ public:
 	afx_msg void OnBnClickedBtWrCmd();
 	afx_msg void OnBnClickedBtSetWavRange();
 	CString m_strMeasure;
+	afx_msg void OnBnClickedBtDrawChart();
+	afx_msg void OnBnClickedBtFft();
 };

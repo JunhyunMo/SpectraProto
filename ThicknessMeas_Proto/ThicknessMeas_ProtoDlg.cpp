@@ -50,7 +50,6 @@ void CAboutDlg::DoDataExchange(CDataExchange* pDX)
 BEGIN_MESSAGE_MAP(CAboutDlg, CDialogEx)
 END_MESSAGE_MAP()
 
-
 // CThicknessMeas_ProtoDlg 대화 상자
 
 CThicknessMeas_ProtoDlg::CThicknessMeas_ProtoDlg(CWnd* pParent /*=NULL*/)
@@ -59,12 +58,15 @@ CThicknessMeas_ProtoDlg::CThicknessMeas_ProtoDlg(CWnd* pParent /*=NULL*/)
 {
 	m_hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
 
-	//MJH
+
 	m_InstrHdl_PM100D = VI_NULL; 
 	m_InstrHdl_CLD1015 = VI_NULL;
 	m_ftHandle = NULL;
 	m_nTotalScan = 0;
 	m_nNGcount = 0;
+
+	m_strChartTitle = L"";
+	m_strCmd = L"";
 }
 
 void CThicknessMeas_ProtoDlg::DoDataExchange(CDataExchange* pDX)
@@ -95,6 +97,8 @@ BEGIN_MESSAGE_MAP(CThicknessMeas_ProtoDlg, CDialogEx)
 	ON_CONTROL(CVN_ViewPortChanged, IDC_CHART, OnViewPortChanged)
 	ON_BN_CLICKED(IDC_BT_WR_CMD, &CThicknessMeas_ProtoDlg::OnBnClickedBtWrCmd)
 	ON_BN_CLICKED(IDC_BT_SET_WAV_RANGE, &CThicknessMeas_ProtoDlg::OnBnClickedBtSetWavRange)
+	ON_BN_CLICKED(IDC_BT_DRAW_CHART, &CThicknessMeas_ProtoDlg::OnBnClickedBtDrawChart)
+	ON_BN_CLICKED(IDC_BT_FFT, &CThicknessMeas_ProtoDlg::OnBnClickedBtFft)
 END_MESSAGE_MAP()
 
 
@@ -149,6 +153,8 @@ BOOL CThicknessMeas_ProtoDlg::OnInitDialog()
     GetLocalTime(&st);
     m_nextDataTime = Chart::chartTime(st.wYear, st.wMonth, st.wDay, st.wHour, st.wMinute, 
         st.wSecond) + st.wMilliseconds / 1000.0;
+
+	((CComboBox*)GetDlgItem(IDC_CB_FORMAT))->SetCurSel(1);
 
 	 // Initialize member variables
     m_extBgColor = getDefaultBgColor();     // Default background color
@@ -756,12 +762,17 @@ CString CThicknessMeas_ProtoDlg::DummyMeasure()
 	CString strLog = L""; 
 	CString strCmd = 
 		L"*MEASure:DARKspectra 1 1 4"; //Run dark measurement, tint ≠ 0 output\r\noutput of data according to defined format
-	    //L"*MEASure:LIGHTspectra 1 1 4"; //Run light measurement (exposured spectrum – with opened shutter or lamp switched on)
-		//L"*MEASure 1 1 4"; //Run measurement with parameters and output of data according to define format
+	    //L"*MEASure:LIGHTspectra 10 1 4"; //Run light measurement (exposured spectrum – with opened shutter or lamp switched on)
+		//L"*MEASure 10 1 4"; //Run measurement with parameters and output of data according to define format
+		
+		//L"CONF:FORM 4";
+	//WriteFwCommand(strCmd);
+	//strCmd = L"*MEAS:REFER 10";
 
     m_strData = WriteFwCommand(strCmd);
 
-	drawChart(&m_ChartViewer);
+	m_strChartTitle = strCmd;
+	DrawChartFormat4(&m_ChartViewer);
 	
 	return strReturn;
 }
@@ -786,17 +797,48 @@ void CThicknessMeas_ProtoDlg::OnBnClickedBtWrCmd()
 	GetDlgItemText(IDC_EDIT_GET_CMD,strCmd);
 	if(strCmd.GetLength() > 0)
 	{	
-		WriteFwCommand(strCmd);		
+		m_strData = WriteFwCommand(strCmd);		
 	}
 	else
 	{
 		MessageBox(L"Input Command First.", L"Warning", MB_OK | MB_ICONWARNING);
 		return;
 	}
+
+	CString strErr = WriteFwCommand(L"*STATus:ERRor?");
+	SetDlgItemText(IDC_EDIT_ERR,strErr);
+}
+
+void CThicknessMeas_ProtoDlg::OnBnClickedBtDrawChart()
+{
+	//CString strCmd =L"*PARAmeter:FORMat?";
+	//CString strRet = WriteFwCommand(strCmd); //ex) Predefined format:\t	7\r\n
+
+	//int nIdx = strRet.Find(L"\r");
+	//CString strFormat = strRet.Mid(nIdx-1,1);
+
+	int nSel = ((CComboBox*)GetDlgItem(IDC_CB_FORMAT))->GetCurSel();
+
+	if(nSel == 0)
+	{
+		DrawChartFormat4(&m_ChartViewer);
+	}
+	else if(nSel == 1)
+	{
+		DrawChartFormat7(&m_ChartViewer);
+	}
+	else
+	{
+		MessageBox(L"format을 선택하세요!", L"ERROR", MB_OK|MB_ICONERROR);
+	}
+	/*m_strChartTitle = m_strCmd;
+	DrawChartFormat7(&m_ChartViewer);*/
 }
 
 CString CThicknessMeas_ProtoDlg::WriteFwCommand(CString strCmd)
 {
+	m_strCmd = strCmd;
+	m_strChartTitle = m_strCmd;
 	strCmd += L"\r";
 
 	CString strLog = L"";
@@ -847,8 +889,15 @@ CString CThicknessMeas_ProtoDlg::WriteFwCommand(CString strCmd)
 			MBCS2Unicode(RxBuffer,TRxBuffer);
 			strLog.Format(L"%s",TRxBuffer);
 			strRet.Format(L"%s",TRxBuffer);
-			//DisplayLog(strLog);
-			SetDlgItemText(IDC_EDIT_MEAS,strRet);
+			DisplayLog(strLog);
+			if(strRet.Left(1) == 0x15) //15 hex - NACK
+			{
+				SetDlgItemText(IDC_EDIT_MEAS,L"NACK");
+			}
+			else // [06 hex - ACK] data  
+			{
+				SetDlgItemText(IDC_EDIT_MEAS,strRet);
+			}
 		} 
 		else 
 		{ 
@@ -861,6 +910,7 @@ CString CThicknessMeas_ProtoDlg::WriteFwCommand(CString strCmd)
 		//AfxMessageBox(L"FT_Read Timeout");
 		DisplayLog(L"FT_Read Timeout");
 	}
+
 	return strRet;
 }
 
@@ -892,7 +942,7 @@ void CThicknessMeas_ProtoDlg::SetWavRange(int wbeg, int wend, int wstep)
 	str1 = WriteFwCommand(strCMD);
 	strCMD.Format(L"*CONFigure:END %d", wend);
 	str2 = WriteFwCommand(strCMD);
-	strCMD.Format(L"*CONFigure:WSTP %d", wend);
+	strCMD.Format(L"*CONFigure:WSTP %d", wstep);
 	str3 = WriteFwCommand(strCMD);
 
 	if(str1.Left(1) == 0x06 && str2.Left(1) == 0x06 && str3.Left(1) == 0x06) //ACK
@@ -919,7 +969,7 @@ void CThicknessMeas_ProtoDlg::OnBnClickedBtSetWavRange()
 // View port changed event
 void CThicknessMeas_ProtoDlg::OnViewPortChanged()
 {
-    drawChart(&m_ChartViewer);
+    //drawChart(&m_ChartViewer);
 }
 
 // A utility to shift a new data value into a data array
@@ -981,8 +1031,8 @@ void CThicknessMeas_ProtoDlg::getData()
 
 //
 // Draw the chart and display it in the given viewer
-//
-void CThicknessMeas_ProtoDlg::drawChart(CChartViewer *viewer)
+//format4 (ASCII output, separated by <CR>)
+void CThicknessMeas_ProtoDlg::DrawChartFormat4(CChartViewer *viewer)
 {
 	m_nTotalScan++;
 
@@ -994,7 +1044,8 @@ void CThicknessMeas_ProtoDlg::drawChart(CChartViewer *viewer)
 	   nIdx2 = m_strData.Find(L"\r",nIdx1);
 	   if(nIdx2>0)
 	   {
-		   m_Data[nCnt] = _wtof(m_strData.Mid(nIdx1,(nIdx2-nIdx1)));
+		   m_nDataArray[nCnt] = _wtof(m_strData.Mid(nIdx1,(nIdx2-nIdx1)));
+		   //m_Data[nCnt] = sin(_wtof(m_strData.Mid(nIdx1,(nIdx2-nIdx1))));
 		   nIdx1 = nIdx2+1;
 		   nCnt++;
 	   }
@@ -1009,24 +1060,21 @@ void CThicknessMeas_ProtoDlg::drawChart(CChartViewer *viewer)
     XYChart *c = new XYChart(700, 400, 0xf4f4f4, 0x000000, 1);
     c->setRoundedFrame(m_extBgColor);
     
-    // Set the plotarea at (55, 0) and of size 600 x 350 pixels. Use white (ffffff) 
-    // background. Enable both horizontal and vertical grids by setting their colors to 
-    // grey (cccccc). Set clipping mode to clip the data lines to the plot area.
     c->setPlotArea(55, 0, 600, 350, 0xffffff, -1, -1, 0xcccccc, 0xcccccc);
     c->setClipping();
 
-	// Add a title to the chart using 15 pts Times New Roman Bold Italic font, with a light
-    // grey (dddddd) background, black (000000) border, and a glass like raised effect.
-    c->addTitle("Dummy Test (*MEASure:DARKspectra 100 1 4)", "timesbi.ttf", 15
+	char chTitle[256];
+	memset(chTitle,0x00,sizeof(chTitle));
+	Unicode2MBCS(m_strChartTitle.GetBuffer(0),chTitle);
+
+	c->addTitle(chTitle, "timesbi.ttf", 15
         )->setBackground(0xdddddd, 0x000000, Chart::glassEffect());
-   
+
     LegendBox *b = c->addLegend2(55, 33, 3, "arialbd.ttf", 9);
     b->setBackground(Chart::Transparent, Chart::Transparent);
     b->setWidth(520);
 
-	// Add a title to the x axis
-    c->xAxis()->setTitle("?");
-    // Configure the y-axis with a 10pts Arial Bold axis title
+    c->xAxis()->setTitle("Pixel","arialbd.ttf", 10);
     c->yAxis()->setTitle("?", "arialbd.ttf", 10);
 
 	// Configure the x-axis to auto-scale with at least 75 pixels between major tick and 
@@ -1037,21 +1085,213 @@ void CThicknessMeas_ProtoDlg::drawChart(CChartViewer *viewer)
     c->xAxis()->setWidth(2);
     c->yAxis()->setWidth(2);
 
-	c->addAreaLayer(DoubleArray(m_Data, (int)(sizeof(m_Data) / sizeof(m_Data[0]))),
+	c->addAreaLayer(DoubleArray(m_nDataArray, (int)(sizeof(m_nDataArray) / sizeof(m_nDataArray[0]))),
         0x80ff0000, "", 3);
 
 	m_ChartViewer.setChart(c);  //m_chartView에 Chart를 보여주기 위한 코드
 
-	ZeroMemory(m_Data,sizeof(m_Data));
+	ZeroMemory(m_nDataArray,sizeof(m_nDataArray));
 	delete c;
 	c = NULL;
 
 	SetDlgItemInt(IDC_EDIT_COUNT,m_nTotalScan);
 	SetDlgItemInt(IDC_EDIT_NG,m_nNGcount);
+}
+//format7 (ASCII output with wavelength, separated by <CR>)
+void CThicknessMeas_ProtoDlg::DrawChartFormat7(CChartViewer *viewer)
+{
+    //for test
+	if(m_strCmd.Left(8) == L"*MEASure")
+	{
+		int	nCnt = 0;
+		int nIdx1 = 0;
+		int nIdx2 = 0;
+
+		do
+		{
+		   nIdx2 = m_strData.Find(L"\t",nIdx1);
+		   if(nIdx2>0)
+		   {
+			   m_nYDataArray[nCnt] = _wtof(m_strData.Mid(nIdx1,(nIdx2-nIdx1)));
+			   nIdx1 = nIdx2+1;
+			   nCnt++;
+		   }
+		}
+		while(nIdx2 != -1);
+
+		/*CString str;
+		str.Format(L"\\r %d", nCnt);
+		AfxMessageBox(str);*/
+
+		nCnt = 0;
+		nIdx1 = 0;
+		nIdx2 = 0;
+
+		do
+		{
+		   nIdx2 = m_strData.Find(L"\r",nIdx1);
+		   if(nIdx2>0)
+		   {
+			   //m_nXDataArray[nCnt] = _wtof(m_strData.Mid(nIdx1,(nIdx2-nIdx1)));
+			   m_nXDataArray[nCnt] = nCnt; //pixel no - 512
+			   nIdx1 = nIdx2+1;
+			   nCnt++;
+		   }
+		}
+		while(nIdx2 != -1);
+		/*str.Format(L"\\t %d", nCnt);
+		AfxMessageBox(str);*/
+	}
+	//
+//////////////////////////////////////////////////////////////////////////////////////////////////////
+    XYChart *c = new XYChart(700, 400, 0xf4f4f4, 0x000000, 1);
+    c->setRoundedFrame(m_extBgColor);
+    
+    // Set the plotarea at (55, 62) and of size 520 x 175 pixels. Use white (ffffff) 
+    // background. Enable both horizontal and vertical grids by setting their colors to 
+    // grey (cccccc). Set clipping mode to clip the data lines to the plot area.
+    c->setPlotArea(55, 0, 600, 350, 0xffffff, -1, -1, 0xcccccc, 0xcccccc);
+    c->setClipping();
+
+    // Add a title to the chart using 15 pts Times New Roman Bold Italic font, with a light
+    // grey (dddddd) background, black (000000) border, and a glass like raised effect.
+    /*c->addTitle("Field Intensity at Observation Satellite", "timesbi.ttf", 15
+        )->setBackground(0xdddddd, 0x000000, Chart::glassEffect());*/
+    
+	char chTitle[256];
+	memset(chTitle,0x00,sizeof(chTitle));
+	Unicode2MBCS(m_strChartTitle.GetBuffer(0),chTitle);
+
+	c->addTitle(chTitle, "timesbi.ttf", 15
+        )->setBackground(0xdddddd, 0x000000, Chart::glassEffect());
+
+    // Add a legend box at the top of the plot area with 9pts Arial Bold font. We set the 
+    // legend box to the same width as the plot area and use grid layout (as opposed to 
+    // flow or top/down layout). This distributes the 3 legend icons evenly on top of the 
+    // plot area.
+    LegendBox *b = c->addLegend2(55, 33, 3, "arialbd.ttf", 9);
+    b->setBackground(Chart::Transparent, Chart::Transparent);
+    b->setWidth(520);
+
+    // Configure the y-axis with a 10pts Arial Bold axis title
+	c->xAxis()->setTitle("Pixel","arialbd.ttf", 10);
+    c->yAxis()->setTitle("?", "arialbd.ttf", 10);
+
+    // Configure the x-axis to auto-scale with at least 75 pixels between major tick and 
+    // 15  pixels between minor ticks. This shows more minor grid lines on the chart.
+    c->xAxis()->setTickDensity(75, 15);
+
+    // Set the axes width to 2 pixels
+    c->xAxis()->setWidth(2);
+    c->yAxis()->setWidth(2);
+
+	 LineLayer *layer = c->addLineLayer();
+	 c->xAxis()->setDateScale(0,512);
+	 layer->setXData(DoubleArray(m_nXDataArray, (int)(sizeof(m_nXDataArray) / sizeof(m_nXDataArray[0]))));
+
+	 char buffer[1024];
+     sprintf(buffer, "Y: <*bgColor=FFCCCC*> %.2f ", m_nYDataArray[512 - 1]);
+	 layer->addDataSet(DoubleArray(m_nYDataArray, (int)(sizeof(m_nYDataArray) / sizeof(m_nYDataArray[0]))), 0xff0000, buffer);
 	
+	 
+	c->addAreaLayer(DoubleArray(m_nDataArray, (int)(sizeof(m_nDataArray) / sizeof(m_nDataArray[0]))),
+        0x80ff0000, "", 3);
+   
+
+    // Set the chart image to the WinChartViewer
+    viewer->setChart(c);
+    delete c;
+}
+/////////////////////////////////////////////////////////////////////////////
+
+void CThicknessMeas_ProtoDlg::DrawFFTChart(CChartViewer *viewer)
+{
+    
+    XYChart *c = new XYChart(700, 400, 0xf4f4f4, 0x000000, 1);
+    c->setRoundedFrame(m_extBgColor);
+    
+    // Set the plotarea at (55, 62) and of size 520 x 175 pixels. Use white (ffffff) 
+    // background. Enable both horizontal and vertical grids by setting their colors to 
+    // grey (cccccc). Set clipping mode to clip the data lines to the plot area.
+    c->setPlotArea(55, 0, 600, 350, 0xffffff, -1, -1, 0xcccccc, 0xcccccc);
+    c->setClipping();
+
+    // Add a title to the chart using 15 pts Times New Roman Bold Italic font, with a light
+    // grey (dddddd) background, black (000000) border, and a glass like raised effect.
+    /*c->addTitle("Field Intensity at Observation Satellite", "timesbi.ttf", 15
+        )->setBackground(0xdddddd, 0x000000, Chart::glassEffect());*/
+    
+	char chTitle[256];
+	memset(chTitle,0x00,sizeof(chTitle));
+	Unicode2MBCS(m_strChartTitle.GetBuffer(0),chTitle);
+
+	c->addTitle(chTitle, "timesbi.ttf", 15
+        )->setBackground(0xdddddd, 0x000000, Chart::glassEffect());
+
+    // Add a legend box at the top of the plot area with 9pts Arial Bold font. We set the 
+    // legend box to the same width as the plot area and use grid layout (as opposed to 
+    // flow or top/down layout). This distributes the 3 legend icons evenly on top of the 
+    // plot area.
+    LegendBox *b = c->addLegend2(55, 33, 3, "arialbd.ttf", 9);
+    b->setBackground(Chart::Transparent, Chart::Transparent);
+    b->setWidth(520);
+
+    // Configure the y-axis with a 10pts Arial Bold axis title
+	c->xAxis()->setTitle("Pixel","arialbd.ttf", 10);
+    c->yAxis()->setTitle("?", "arialbd.ttf", 10);
+
+    // Configure the x-axis to auto-scale with at least 75 pixels between major tick and 
+    // 15  pixels between minor ticks. This shows more minor grid lines on the chart.
+    c->xAxis()->setTickDensity(75, 15);
+
+    // Set the axes width to 2 pixels
+    c->xAxis()->setWidth(2);
+    c->yAxis()->setWidth(2);
+
+	c->addAreaLayer(DoubleArray(m_nDataArray, (int)(sizeof(m_nDataArray) / sizeof(m_nDataArray[0]))),
+        0x80ff0000, "", 3);
+
+	m_ChartViewer.setChart(c);  //m_chartView에 Chart를 보여주기 위한 코드
+
+	ZeroMemory(m_nDataArray,sizeof(m_nDataArray));
+	delete c;
+	c = NULL;
+	
+
+    // Now we add the data to the chart. 
+    //double lastTime = m_timeStamps[sampleSize - 1];
+    //if (lastTime != Chart::NoValue)
+    //{
+    //    // Set up the x-axis to show the time range in the data buffer
+    //    c->xAxis()->setDateScale(lastTime - DataInterval * sampleSize / 1000, lastTime);
+    //    
+    //    // Set the x-axis label format
+    //    c->xAxis()->setLabelFormat("{value|hh:nn:ss}");
+
+    //    // Create a line layer to plot the lines
+    //    LineLayer *layer = c->addLineLayer();
+
+    //    // The x-coordinates are the timeStamps.
+    //    layer->setXData(DoubleArray(m_timeStamps, sampleSize));
+
+    //    // The 3 data series are used to draw 3 lines. Here we put the latest data values
+    //    // as part of the data set name, so you can see them updated in the legend box.
+    //    char buffer[1024];
+
+    //    sprintf(buffer, "Alpha: <*bgColor=FFCCCC*> %.2f ", m_dataSeriesA[sampleSize - 1]);
+    //    layer->addDataSet(DoubleArray(m_dataSeriesA, sampleSize), 0xff0000, buffer);
+    //    
+    //    /*sprintf(buffer, "Beta: <*bgColor=CCFFCC*> %.2f ", m_dataSeriesB[sampleSize - 1]);
+    //    layer->addDataSet(DoubleArray(m_dataSeriesB, sampleSize), 0x00cc00, buffer); 
+    //    
+    //    sprintf(buffer, "Gamma: <*bgColor=CCCCFF*> %.2f ", m_dataSeriesC[sampleSize - 1]);
+    //    layer->addDataSet(DoubleArray(m_dataSeriesC, sampleSize), 0x0000ff, buffer);*/
+    //}
+
+    // Set the chart image to the WinChartViewer
+    
 }
 
-/////////////////////////////////////////////////////////////////////////////
 // General utilities
 
 //
@@ -1067,3 +1307,112 @@ int CThicknessMeas_ProtoDlg::getDefaultBgColor()
     return ((ret & 0xff) << 16) | (ret & 0xff00) | ((ret & 0xff0000) >> 16);
 }
 
+WORD MAKE_WORD( const BYTE Byte_hi, const BYTE Byte_lo)
+{
+     return   (( Byte_hi << 8  ) | Byte_lo & 0x00FF );
+}
+
+void CThicknessMeas_ProtoDlg::OnBnClickedBtFft()
+{
+	//WreteFwCommand body
+CString strCmd = L"*PARAmeter:FFTPARAmeter 3000 10 1000";
+WriteFwCommand(strCmd);
+strCmd = L"*MEASure:FSTMEASure";
+
+//strCmd = L"*CONFigure:FORMat 5";
+//WriteFwCommand(strCmd);
+
+	m_strCmd = L"*MEASure:FSTMEASure";
+	m_strChartTitle = m_strCmd;
+	strCmd += L"\r";
+
+	CString strLog = L"";
+	CString strRet = L"";
+	FT_STATUS ftStatus;
+	DWORD BytesWritten; 
+	char TxBuffer[256];// Contains data to write to device 
+
+	memset(TxBuffer,0x00,sizeof(TxBuffer));
+
+	Unicode2MBCS(strCmd.GetBuffer(0), TxBuffer);
+	
+	ftStatus = FT_Write(m_ftHandle, TxBuffer, sizeof(TxBuffer), &BytesWritten); 
+	if (ftStatus == FT_OK) 
+	{ 
+		// FT_Write OK 
+		strLog.Format(L"FT_Write FT_OK - %s",strCmd);
+		DisplayLog(strLog);
+	} 
+	else 
+	{ 
+		strLog.Format(L"FT_Write Failed - %s",strCmd);
+		DisplayLog(strLog);
+	}
+
+	DWORD RxBytes = 1024*10;
+	DWORD BytesReceived; 
+
+	//char RxBuffer[1024*10];
+	BYTE RxBuffer[1024*10];
+	::ZeroMemory(RxBuffer, sizeof(RxBuffer));
+
+	//TCHAR TRxBuffer[256*2];
+	TCHAR TRxBuffer[1024*20];
+	::ZeroMemory(TRxBuffer, sizeof(TRxBuffer));
+	
+	//FT_GetStatus(m_ftHandle,&RxBytes,&TxBytes,&EventDWord);
+	//double nElapse = 0.2*1000; //read with a timeout of 0.2 seconds
+	double nElapse = 1.0 *1000; //read with a timeout of 0.5 seconds
+	FT_SetTimeouts(m_ftHandle,(ULONG)nElapse,0); 
+	//Sleep(3000);
+	ftStatus = FT_Read(m_ftHandle,RxBuffer,RxBytes,&BytesReceived); 
+	WORD data = 0;
+	if (ftStatus == FT_OK) 
+	{ 
+		//if (BytesReceived == RxBytes) 
+		if (BytesReceived > 0) 
+		{ 
+			// FT_Read OK 
+			DisplayLog(L"FT_Read OK ");
+
+			for(int i=0;i<=512; i++)
+			{
+				if(i < 2)
+				{
+					m_nDataArray[i] = 0x00;
+				}
+				else
+				{
+					m_nDataArray[i] = MAKE_WORD(RxBuffer[2+(i-1)*2], RxBuffer [3+(i-1)*2]);
+				}
+				/*strLog.Format(L"%d\r\n",data);
+				strRet += strLog;*/
+			}
+			/*MBCS2Unicode(RxBuffer,TRxBuffer);
+			strLog.Format(L"%s",TRxBuffer);
+			strRet.Format(L"%s",TRxBuffer);*/
+			DisplayLog(strLog);
+			if(strRet.Left(1) == 0x15) //15 hex - NACK
+			{
+				SetDlgItemText(IDC_EDIT_MEAS,L"NACK");
+			}
+			else // [06 hex - ACK] data  
+			{
+				SetDlgItemText(IDC_EDIT_MEAS,strRet);
+			}
+		} 
+		else 
+		{ 
+			// FT_Read Failed 
+			DisplayLog(L"FT_Read Failed ");
+		} 
+	} 
+	else
+	{
+		//AfxMessageBox(L"FT_Read Timeout");
+		DisplayLog(L"FT_Read Timeout");
+	}
+
+	/*AfxMessageBox(strRet);*/
+	DrawFFTChart(&m_ChartViewer);
+}
