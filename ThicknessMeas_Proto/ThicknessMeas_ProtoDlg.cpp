@@ -1355,16 +1355,12 @@ void CThicknessMeas_ProtoDlg::OnBnClickedBtFft()
 	//BYTE RxBuffer[1024*10];
 	BYTE RxBuffer[1024+1];
 	::ZeroMemory(RxBuffer, sizeof(RxBuffer));
-
-	//의미 없음.
-	/*TCHAR TRxBuffer[1024*20];
-	::ZeroMemory(TRxBuffer, sizeof(TRxBuffer));*/
 	
 	//FT_GetStatus(m_ftHandle,&RxBytes,&TxBytes,&EventDWord);
 	//double nElapse = 0.2*1000; //read with a timeout of 0.2 seconds
 	double nElapse = 1.0 *1000; //read with a timeout of 0.5 seconds
 	FT_SetTimeouts(m_ftHandle,(ULONG)nElapse,0); 
-	//Sleep(3000);
+	
 	ftStatus = FT_Read(m_ftHandle,RxBuffer,RxBytes,&BytesReceived); 
 	WORD data = 0;
 	if (ftStatus == FT_OK) 
@@ -1375,31 +1371,21 @@ void CThicknessMeas_ProtoDlg::OnBnClickedBtFft()
 			// FT_Read OK 
 			DisplayLog(L"FT_Read OK ");
 
-			for(int i=0;i<=512; i++)
+			for(int i=0;i<512; i++)
 			{
-				if(i < 2)
-				{
-					m_nDataArray[i] = 0x00;
-				}
-				else
-				{
-					m_nDataArray[i] = MAKE_WORD(RxBuffer[2+(i-1)*2], RxBuffer [3+(i-1)*2]);
-				}
-				/*strLog.Format(L"%d\r\n",data);
-				strRet += strLog;*/
+				
+				m_nDataArray[i] = MAKE_WORD(RxBuffer[2+(i-1)*2], RxBuffer [3+(i-1)*2]);
 			}
-			/*MBCS2Unicode(RxBuffer,TRxBuffer);
-			strLog.Format(L"%s",TRxBuffer);
-			strRet.Format(L"%s",TRxBuffer);*/
+			
+			strLog.Format(L"m_nDataArray[0] = %d / m_nDataArray[1] = %d", m_nDataArray[0], m_nDataArray[1]);
 			DisplayLog(strLog);
-			//if(strRet.Left(1) == 0x15) //15 hex - NACK
-			//{
-			//	SetDlgItemText(IDC_EDIT_MEAS,L"NACK");
-			//}
-			//else // [06 hex - ACK] data  
-			//{
-			//	SetDlgItemText(IDC_EDIT_MEAS,strRet);
-			//}
+			
+			strLog.Format(L"RxBuffer[1] = %x / RxBuffer[2] = %x", RxBuffer[1], RxBuffer[2]);
+			DisplayLog(strLog);
+
+			WORD d = MAKE_WORD(RxBuffer[1], RxBuffer[2]);
+			strLog.Format(L"MAKE_WORD (RxBuffer[1], RxBuffer[2]) = %d", d);
+			DisplayLog(strLog);
 		} 
 		else 
 		{ 
@@ -1412,7 +1398,10 @@ void CThicknessMeas_ProtoDlg::OnBnClickedBtFft()
 		//AfxMessageBox(L"FT_Read Timeout");
 		DisplayLog(L"FT_Read Timeout");
 	}
-
-	/*AfxMessageBox(strRet);*/
-	DrawFFTChart(&m_ChartViewer);
+//	if((int)RxBuffer[1] == 0 && (int) RxBuffer [2] == 0)
+	
+	//if(RxBuffer[1] == 0x0 && RxBuffer[2] == 0x0)
+	{
+		DrawFFTChart(&m_ChartViewer);
+	}
 }
