@@ -59,11 +59,13 @@ protected:
 	int		  m_nTotalScan,m_nNGcount;
 	CString	  DummyMeasure();
 	CString   WriteFwCommand(CString strCmd);
+	CString   WriteFwCommand2(CString strCmd);
 	
 	void      GetMeasConfig();
 	void	  GetWavRange();
 	void	  SetWavRange(int wbeg, int wend, int wstep);
 	void      GetTint();
+	void	  FFTtest();
 
 	//chart
 	CChartViewer m_ChartViewer;
@@ -108,4 +110,5 @@ public:
 	CString m_strMeasure;
 	afx_msg void OnBnClickedBtDrawChart();
 	afx_msg void OnBnClickedBtFft();
+	afx_msg void OnBnClickedBtFftStop();
 };

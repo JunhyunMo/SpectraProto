@@ -15,6 +15,7 @@
 //for TIMER readability
 #define MESURE_POWER (100)
 #define DUMMY_MEASURE (101)
+#define FFT (102)
 
 static const int DataRateTimer = 1;
 static const int ChartUpdateTimer = 2;
@@ -99,6 +100,7 @@ BEGIN_MESSAGE_MAP(CThicknessMeas_ProtoDlg, CDialogEx)
 	ON_BN_CLICKED(IDC_BT_SET_WAV_RANGE, &CThicknessMeas_ProtoDlg::OnBnClickedBtSetWavRange)
 	ON_BN_CLICKED(IDC_BT_DRAW_CHART, &CThicknessMeas_ProtoDlg::OnBnClickedBtDrawChart)
 	ON_BN_CLICKED(IDC_BT_FFT, &CThicknessMeas_ProtoDlg::OnBnClickedBtFft)
+	ON_BN_CLICKED(IDC_BT_FFT_STOP, &CThicknessMeas_ProtoDlg::OnBnClickedBtFftStop)
 END_MESSAGE_MAP()
 
 
@@ -236,9 +238,6 @@ void CThicknessMeas_ProtoDlg::OnTimer(UINT_PTR nIDEvent)
 		case DUMMY_MEASURE:
 			DummyMeasure();
 			break;
-		default:
-			KillTimer(nIDEvent);
-			break;
 		case DataRateTimer:
         // Is data acquisition timer - get a new data sample
 			getData();
@@ -246,6 +245,12 @@ void CThicknessMeas_ProtoDlg::OnTimer(UINT_PTR nIDEvent)
 		case ChartUpdateTimer:
         // Is chart update timer - request chart update
 			m_ChartViewer.updateViewPort(true, false);      
+			break;
+		case FFT:
+			FFTtest();
+			break;
+		default:
+			KillTimer(nIDEvent);
 			break;
 	}
 
@@ -914,6 +919,89 @@ CString CThicknessMeas_ProtoDlg::WriteFwCommand(CString strCmd)
 	return strRet;
 }
 
+CString CThicknessMeas_ProtoDlg::WriteFwCommand2(CString strCmd)
+{
+	m_strCmd = strCmd;
+	m_strChartTitle = m_strCmd;
+	strCmd += L"\r";
+
+	CString strLog = L"";
+	CString strRet = L"";
+	FT_STATUS ftStatus;
+	DWORD BytesWritten; 
+	char TxBuffer[256];// Contains data to write to device 
+
+	memset(TxBuffer,0x00,sizeof(TxBuffer));
+
+	Unicode2MBCS(strCmd.GetBuffer(0), TxBuffer);
+	
+	ftStatus = FT_Write(m_ftHandle, TxBuffer, sizeof(TxBuffer), &BytesWritten); 
+	if (ftStatus == FT_OK) 
+	{ 
+		// FT_Write OK 
+		strLog.Format(L"FT_Write FT_OK - %s",strCmd);
+		DisplayLog(strLog);
+	} 
+	else 
+	{ 
+		strLog.Format(L"FT_Write Failed - %s",strCmd);
+		DisplayLog(strLog);
+	}
+
+	DWORD RxBytes = 1024*10;
+	DWORD BytesReceived; 
+
+	char RxBuffer[1024*10];
+	//BYTE RxBuffer[1024*10];
+	::ZeroMemory(RxBuffer, sizeof(RxBuffer));
+
+	//TCHAR TRxBuffer[256*2];
+	TCHAR TRxBuffer[1024*20];
+	::ZeroMemory(TRxBuffer, sizeof(TRxBuffer));
+	
+	//FT_GetStatus(m_ftHandle,&RxBytes,&TxBytes,&EventDWord);
+	double nElapse = 0.2*1000; //read with a timeout of 0.2 seconds
+	FT_SetTimeouts(m_ftHandle,(ULONG)nElapse,0); 
+
+	ftStatus = FT_Read(m_ftHandle,RxBuffer,RxBytes,&BytesReceived);
+	
+	if (ftStatus == FT_OK) 
+	{ 
+		//if (BytesReceived == RxBytes) 
+		if (BytesReceived > 0) 
+		{ 
+			// FT_Read OK 
+			DisplayLog(L"FT_Read OK ");
+
+			//MBCS2Unicode(RxBuffer,TRxBuffer);
+			//strLog.Format(L"%s",TRxBuffer);
+			//strRet.Format(L"%s",TRxBuffer);
+			//DisplayLog(strLog);
+			//if(strRet.Left(1) == 0x07) //07 hex - BELL
+			//{
+			//	SetDlgItemText(IDC_EDIT_MEAS,L"finishing the measurement");
+			//	strRet = L"finishing";
+			//}
+			//else // [06 hex - ACK] data  
+			//{
+			//	SetDlgItemText(IDC_EDIT_MEAS,strRet);
+			//}
+		} 
+		else 
+		{ 
+			// FT_Read Failed 
+			DisplayLog(L"FT_Read Failed ");
+		} 
+	} 
+	else
+	{
+		//AfxMessageBox(L"FT_Read Timeout");
+		DisplayLog(L"FT_Read Timeout");
+	}
+
+	return strRet;
+}
+
 void  CThicknessMeas_ProtoDlg::GetMeasConfig()
 {
 	GetWavRange(); //Get wavelength range - *CONFigure:WRANge wbeg wend wstp <CR>
@@ -1314,8 +1402,16 @@ WORD MAKE_WORD( const BYTE Byte_hi, const BYTE Byte_lo)
 
 void CThicknessMeas_ProtoDlg::OnBnClickedBtFft()
 {
-	//WreteFwCommand body
-	CString strCmd = L"*PARAmeter:FFTPARAmeter 3000 10 1000";
+	SetTimer(FFT,1000,NULL);
+	//FFTtest();
+}
+
+void CThicknessMeas_ProtoDlg::FFTtest()
+{
+	int nSyncMark = 0;
+	CString strCmd = L"ESC";
+	WriteFwCommand(strCmd);
+	strCmd = L"*PARAmeter:FFTPARAmeter 3000 10 1000";
 	WriteFwCommand(strCmd);
 	strCmd = L"*MEASure:FSTMEASure";
 
@@ -1332,22 +1428,29 @@ void CThicknessMeas_ProtoDlg::OnBnClickedBtFft()
 	DWORD BytesWritten; 
 	char TxBuffer[256];// Contains data to write to device 
 
-	memset(TxBuffer,0x00,sizeof(TxBuffer));
+//for test
+	strRet = WriteFwCommand2(m_strCmd);
 
-	Unicode2MBCS(strCmd.GetBuffer(0), TxBuffer);
-	
-	ftStatus = FT_Write(m_ftHandle, TxBuffer, sizeof(TxBuffer), &BytesWritten); 
-	if (ftStatus == FT_OK) 
-	{ 
-		// FT_Write OK 
-		strLog.Format(L"FT_Write FT_OK - %s",strCmd);
-		DisplayLog(strLog);
-	} 
-	else 
-	{ 
-		strLog.Format(L"FT_Write Failed - %s",strCmd);
-		DisplayLog(strLog);
-	}
+	/*m_strCmd = L"*STATus:ERRor?";
+	strRet = WriteFwCommand2(m_strCmd);*/
+	/*if(strRet != L"finishing")
+		return;*/
+	//memset(TxBuffer,0x00,sizeof(TxBuffer));
+
+	//Unicode2MBCS(strCmd.GetBuffer(0), TxBuffer);
+	//
+	//ftStatus = FT_Write(m_ftHandle, TxBuffer, sizeof(TxBuffer), &BytesWritten); 
+	//if (ftStatus == FT_OK) 
+	//{ 
+	//	// FT_Write OK 
+	//	strLog.Format(L"FT_Write FT_OK - %s",strCmd);
+	//	DisplayLog(strLog);
+	//} 
+	//else 
+	//{ 
+	//	strLog.Format(L"FT_Write Failed - %s",strCmd);
+	//	DisplayLog(strLog);
+	//}
 
 	DWORD RxBytes = 1024+1;
 	DWORD BytesReceived; 
@@ -1370,11 +1473,29 @@ void CThicknessMeas_ProtoDlg::OnBnClickedBtFft()
 		{ 
 			// FT_Read OK 
 			DisplayLog(L"FT_Read OK ");
-
+			int j = 0;
+			for(j=0; j<1024; j++)
+			{
+				if(RxBuffer[j] == 0 && RxBuffer[j+1] == 0)
+				{
+					strLog.Format(L"RxBuffer[%d] == 0 && RxBuffer[%d] == 0 ", j, j+1);
+					DisplayLog(strLog);
+					nSyncMark++;
+				}
+			}
+			
 			for(int i=0;i<512; i++)
 			{
-				
-				m_nDataArray[i] = MAKE_WORD(RxBuffer[2+(i-1)*2], RxBuffer [3+(i-1)*2]);
+				//for test
+				/*if(j%2 == 1)
+					m_nDataArray[i] = MAKE_WORD(RxBuffer[2+(i-1)*2], RxBuffer [3+(i-1)*2]);
+				else
+					m_nDataArray[i] = MAKE_WORD(RxBuffer [3+(i-1)*2], RxBuffer[2+(i-1)*2]);*/
+				double d = MAKE_WORD(RxBuffer[2+(i-1)*2], RxBuffer [3+(i-1)*2]);
+				if(d > 0)
+					m_nDataArray[i] = d;
+				else
+					return;
 			}
 			
 			strLog.Format(L"m_nDataArray[0] = %d / m_nDataArray[1] = %d", m_nDataArray[0], m_nDataArray[1]);
@@ -1386,6 +1507,9 @@ void CThicknessMeas_ProtoDlg::OnBnClickedBtFft()
 			WORD d = MAKE_WORD(RxBuffer[1], RxBuffer[2]);
 			strLog.Format(L"MAKE_WORD (RxBuffer[1], RxBuffer[2]) = %d", d);
 			DisplayLog(strLog);
+
+			
+			
 		} 
 		else 
 		{ 
@@ -1400,8 +1524,17 @@ void CThicknessMeas_ProtoDlg::OnBnClickedBtFft()
 	}
 //	if((int)RxBuffer[1] == 0 && (int) RxBuffer [2] == 0)
 	
-	//if(RxBuffer[1] == 0x0 && RxBuffer[2] == 0x0)
+	//if(nSyncMark == 1)
 	{
 		DrawFFTChart(&m_ChartViewer);
 	}
+}
+
+void CThicknessMeas_ProtoDlg::OnBnClickedBtFftStop()
+{
+	// TODO: 여기에 컨트롤 알림 처리기 코드를 추가합니다.
+	KillTimer(FFT);
+
+	CString strCmd = L"ESC";
+	WriteFwCommand(strCmd);
 }
