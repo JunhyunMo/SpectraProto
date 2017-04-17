@@ -1411,7 +1411,7 @@ void CThicknessMeas_ProtoDlg::FFTtest()
 	int nSyncMark = 0;
 	CString strCmd = L"ESC";
 	WriteFwCommand(strCmd);
-	strCmd = L"*PARAmeter:FFTPARAmeter 3000 10 1000";
+	strCmd = L"*PARAmeter:FFTPARAmeter 3000 3 1000";
 	WriteFwCommand(strCmd);
 	strCmd = L"*MEASure:FSTMEASure";
 
@@ -1484,7 +1484,7 @@ void CThicknessMeas_ProtoDlg::FFTtest()
 				}
 			}
 			
-			for(int i=0;i<512; i++)
+			for(int i=0;i<512; i++) //수길씨 for문 += 2 고려해 볼것.
 			{
 				//for test
 				/*if(j%2 == 1)
