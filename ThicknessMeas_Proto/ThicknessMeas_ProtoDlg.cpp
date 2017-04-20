@@ -1402,8 +1402,8 @@ WORD MAKE_WORD( const BYTE Byte_hi, const BYTE Byte_lo)
 
 void CThicknessMeas_ProtoDlg::OnBnClickedBtFft()
 {
-	//SetTimer(FFT,1000,NULL);
-	FFTtest();
+	SetTimer(FFT,1000,NULL);
+	//FFTtest();
 }
 
 void CThicknessMeas_ProtoDlg::FFTtest()
