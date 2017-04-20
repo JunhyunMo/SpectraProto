@@ -71,6 +71,7 @@ protected:
 	CChartViewer m_ChartViewer;
 	CString		 m_strData,m_strCmd,m_strChartTitle;
 	double		 m_nDataArray[512];
+	double		 m_nDataArrTemp[512];
 	double		 m_nXDataArray[512], m_nYDataArray[512];
 	//WORD         m_nXData[512], m_nYData[512];
 	char		 m_ChTitle;

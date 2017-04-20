@@ -116,7 +116,7 @@
       <PrecompiledHeader>Use</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>WIN32;_WINDOWS;_DEBUG;_CRT_SECURE_NO_DEPRECATE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_WINDOWS;_DEBUG;_CRT_SECURE_NO_WARNINGS;_CRT_NON_CONFORMING_SWPRINTFS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
     </ClCompile>
     <Link>
@@ -196,6 +196,8 @@
     <ClInclude Include="chartdir.h" />
     <ClInclude Include="ChartViewer.h" />
     <ClInclude Include="ftd2xx.h" />
+    <ClInclude Include="Log.h" />
+    <ClInclude Include="LogFile.h" />
     <ClInclude Include="memblock.h" />
     <ClInclude Include="PM100D.h" />
     <ClInclude Include="Resource.h" />
@@ -210,6 +212,8 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="ChartViewer.cpp" />
+    <ClCompile Include="Log.cpp" />
+    <ClCompile Include="LogFile.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>

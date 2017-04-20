@@ -1402,8 +1402,8 @@ WORD MAKE_WORD( const BYTE Byte_hi, const BYTE Byte_lo)
 
 void CThicknessMeas_ProtoDlg::OnBnClickedBtFft()
 {
-	SetTimer(FFT,1000,NULL);
-	//FFTtest();
+	//SetTimer(FFT,1000,NULL);
+	FFTtest();
 }
 
 void CThicknessMeas_ProtoDlg::FFTtest()
@@ -1415,9 +1415,6 @@ void CThicknessMeas_ProtoDlg::FFTtest()
 	WriteFwCommand(strCmd);
 	strCmd = L"*MEASure:FSTMEASure";
 
-//strCmd = L"*CONFigure:FORMat 5";
-//WriteFwCommand(strCmd);
-
 	m_strCmd = L"*MEASure:FSTMEASure";
 	m_strChartTitle = m_strCmd;
 	strCmd += L"\r";
@@ -1425,91 +1422,214 @@ void CThicknessMeas_ProtoDlg::FFTtest()
 	CString strLog = L"";
 	CString strRet = L"";
 	FT_STATUS ftStatus;
-	DWORD BytesWritten; 
-	char TxBuffer[256];// Contains data to write to device 
+//	DWORD BytesWritten; 
+//	char TxBuffer[256];// Contains data to write to device 
 
-//for test
 	strRet = WriteFwCommand2(m_strCmd);
-
-	/*m_strCmd = L"*STATus:ERRor?";
-	strRet = WriteFwCommand2(m_strCmd);*/
-	/*if(strRet != L"finishing")
-		return;*/
-	//memset(TxBuffer,0x00,sizeof(TxBuffer));
-
-	//Unicode2MBCS(strCmd.GetBuffer(0), TxBuffer);
-	//
-	//ftStatus = FT_Write(m_ftHandle, TxBuffer, sizeof(TxBuffer), &BytesWritten); 
-	//if (ftStatus == FT_OK) 
-	//{ 
-	//	// FT_Write OK 
-	//	strLog.Format(L"FT_Write FT_OK - %s",strCmd);
-	//	DisplayLog(strLog);
-	//} 
-	//else 
-	//{ 
-	//	strLog.Format(L"FT_Write Failed - %s",strCmd);
-	//	DisplayLog(strLog);
-	//}
 
 	DWORD RxBytes = 1024+1;
 	DWORD BytesReceived; 
 
-	//BYTE RxBuffer[1024*10];
 	BYTE RxBuffer[1024+1];
 	::ZeroMemory(RxBuffer, sizeof(RxBuffer));
 	
 	//FT_GetStatus(m_ftHandle,&RxBytes,&TxBytes,&EventDWord);
 	//double nElapse = 0.2*1000; //read with a timeout of 0.2 seconds
-	double nElapse = 1.0 *1000; //read with a timeout of 0.5 seconds
+	double nElapse = 0.5 *1000; //read with a timeout of 0.5 seconds
 	FT_SetTimeouts(m_ftHandle,(ULONG)nElapse,0); 
 	
+	ZeroMemory(m_nDataArray,sizeof(m_nDataArray));
+	ZeroMemory(m_nDataArrTemp,sizeof(m_nDataArrTemp));
+
+	TCHAR TRxBuffer[1024*20];
+	::ZeroMemory(TRxBuffer, sizeof(TRxBuffer));
+
 	ftStatus = FT_Read(m_ftHandle,RxBuffer,RxBytes,&BytesReceived); 
 	WORD data = 0;
 	if (ftStatus == FT_OK) 
 	{ 
+		CString strTemp;
+		CString strData=L"";
+
 		//if (BytesReceived == RxBytes) 
 		if (BytesReceived > 0) 
 		{ 
 			// FT_Read OK 
 			DisplayLog(L"FT_Read OK ");
-			int j = 0;
-			for(j=0; j<1024; j++)
+			int i;
+			for(i=0; i<512; i++)
 			{
-				if(RxBuffer[j] == 0 && RxBuffer[j+1] == 0)
+				if(RxBuffer[i] == 0 && RxBuffer[i+1] == 0)
 				{
-					strLog.Format(L"RxBuffer[%d] == 0 && RxBuffer[%d] == 0 ", j, j+1);
-					DisplayLog(strLog);
-					nSyncMark++;
+					nSyncMark = i;
+					strTemp.Format(L"%d\t",nSyncMark);
+					strData += strTemp;
 				}
-			}
-			
-			for(int i=0;i<512; i++) //수길씨 for문 += 2 고려해 볼것.
-			{
-				//for test
-				/*if(j%2 == 1)
-					m_nDataArray[i] = MAKE_WORD(RxBuffer[2+(i-1)*2], RxBuffer [3+(i-1)*2]);
-				else
-					m_nDataArray[i] = MAKE_WORD(RxBuffer [3+(i-1)*2], RxBuffer[2+(i-1)*2]);*/
 				double d = MAKE_WORD(RxBuffer[2+(i-1)*2], RxBuffer [3+(i-1)*2]);
 				if(d > 0)
+				{
 					m_nDataArray[i] = d;
+					if(d<200)
+					{
+						nSyncMark = i;
+					}
+				}
 				else
 					return;
 			}
-			
-			strLog.Format(L"m_nDataArray[0] = %d / m_nDataArray[1] = %d", m_nDataArray[0], m_nDataArray[1]);
-			DisplayLog(strLog);
-			
-			strLog.Format(L"RxBuffer[1] = %x / RxBuffer[2] = %x", RxBuffer[1], RxBuffer[2]);
-			DisplayLog(strLog);
 
-			WORD d = MAKE_WORD(RxBuffer[1], RxBuffer[2]);
-			strLog.Format(L"MAKE_WORD (RxBuffer[1], RxBuffer[2]) = %d", d);
-			DisplayLog(strLog);
+			if(strData.GetLength()>1)
+			{
+				strData += L"[SyncMark]";
+				GetLog()->Debug(strData.GetBuffer());
+			}
 
+			double min = m_nDataArray[0];
+			int m,nMin;
+			//MIN => Sync mark
+			for(m = 0; m < 512; m++)
+			{
+				if(m_nDataArray[m] < min)
+				{
+					min = m_nDataArray[m];
+					nMin = m;
+				}
+			}
+
+			strData.Format(L"MIN = %d",nMin);
+			GetLog()->Debug(strData.GetBuffer());
+
+			strData=L"";
+			for(int k=0; k<70; k++)
+			{
+				if(k == nSyncMark)
+				{
+					strTemp.Format(L"%f Sync mark [%d]\r\n",m_nDataArray[k],k);
+				}
+				else
+				{
+					strTemp.Format(L"%f\r\n",m_nDataArray[k]);
+				}
+				strData += strTemp;
+			}
+			GetLog()->Debug(strData.GetBuffer());
+
+			strData=L"";
+			for(int k=70; k<140; k++)
+			{
+				if(k == nSyncMark)
+				{
+					strTemp.Format(L"%f Sync mark [%d]\r\n",m_nDataArray[k],k);
+				}
+				else
+				{
+					strTemp.Format(L"%f\r\n",m_nDataArray[k]);
+				}
+				strData += strTemp;
+			}
+			GetLog()->Debug(strData.GetBuffer());
+			strData=L"";
+			for(int k=140; k<210; k++)
+			{
+				if(k == nSyncMark)
+				{
+					strTemp.Format(L"%f Sync mark [%d]\r\n",m_nDataArray[k],k);
+				}
+				else
+				{
+					strTemp.Format(L"%f\r\n",m_nDataArray[k]);
+				}
+				strData += strTemp;
+			}
+			GetLog()->Debug(strData.GetBuffer());
+			strData=L"";
+			for(int k=210; k<280; k++)
+			{
+				if(k == nSyncMark)
+				{
+					strTemp.Format(L"%f Sync mark [%d]\r\n",m_nDataArray[k],k);
+				}
+				else
+				{
+					strTemp.Format(L"%f\r\n",m_nDataArray[k]);
+				}
+				strData += strTemp;
+			}
+			GetLog()->Debug(strData.GetBuffer());
+			strData=L"";
+			for(int k=280; k<350; k++)
+			{
+				if(k == nSyncMark)
+				{
+					strTemp.Format(L"%f Sync mark [%d]\r\n",m_nDataArray[k],k);
+				}
+				else
+				{
+					strTemp.Format(L"%f\r\n",m_nDataArray[k]);
+				}
+				strData += strTemp;
+			}
+			GetLog()->Debug(strData.GetBuffer());
+			strData=L"";
+			for(int k=350; k<420; k++)
+			{
+				if(k == nSyncMark)
+				{
+					strTemp.Format(L"%f Sync mark [%d]\r\n",m_nDataArray[k],k);
+				}
+				else
+				{
+					strTemp.Format(L"%f\r\n",m_nDataArray[k]);
+				}
+				strData += strTemp;
+			}
+			GetLog()->Debug(strData.GetBuffer());
+			strData=L"";
+			for(int k=420; k<490; k++)
+			{
+				if(k == nSyncMark)
+				{
+					strTemp.Format(L"%f Sync mark [%d]\r\n",m_nDataArray[k],k);
+				}
+				else
+				{
+					strTemp.Format(L"%f\r\n",m_nDataArray[k]);
+				}
+				strData += strTemp;
+			}
+			GetLog()->Debug(strData.GetBuffer());
+			strData=L"";
+			for(int k=490; k<512; k++)
+			{
+				if(k == nSyncMark)
+				{
+					strTemp.Format(L"%f Sync mark [%d]\r\n",m_nDataArray[k],k);
+				}
+				else
+				{
+					strTemp.Format(L"%f\r\n",m_nDataArray[k]);
+				}
+				strData += strTemp;
+			}
+
+			for(i=0;i<512;i++)
+			{
+				m_nDataArrTemp[i] = m_nDataArray[i];
+			}
+			ZeroMemory(m_nDataArray,sizeof(m_nDataArray));
+			int nContinue = 512-nMin; 
+			for(i=0;i<nContinue;i++)
+			{
+				m_nDataArray[i] = m_nDataArrTemp[nMin+i];
+			}
 			
-			
+			for(i=0;i<nMin;i++)
+			{
+				m_nDataArray[nContinue+i] = m_nDataArrTemp[i];
+			}
+
+			strData += L"---------------------------------------------------------";
+			GetLog()->Debug(strData.GetBuffer());
 		} 
 		else 
 		{ 
