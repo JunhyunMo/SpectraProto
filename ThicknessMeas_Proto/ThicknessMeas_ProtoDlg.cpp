@@ -161,6 +161,16 @@ BOOL CThicknessMeas_ProtoDlg::OnInitDialog()
 	 // Initialize member variables
     m_extBgColor = getDefaultBgColor();     // Default background color
 
+	SetDlgItemInt(IDC_EDIT_COUNT,m_nTotalScan);
+	SetDlgItemInt(IDC_EDIT_NG,m_nNGcount);
+	
+	SetDlgItemInt(IDC_EDIT_FREQUENCY,3000);
+	SetDlgItemInt(IDC_EDIT_EXP_TIME,3);
+	SetDlgItemInt(IDC_EDIT_FFT_COUNT,100);
+	SetDlgItemInt(IDC_EDIT_REP_CYC,1000);
+
+	SetDlgItemText(IDC_EDIT_GET_CMD,L"*PARAmeter:FFTPARAmeter?");
+
 	return TRUE;  // 포커스를 컨트롤에 설정하지 않으면 TRUE를 반환합니다.
 }
 
@@ -392,9 +402,7 @@ void CThicknessMeas_ProtoDlg::MeasurePower()
    CString		  strLog;
 
    err = PM100D_getPowerUnit(m_InstrHdl_PM100D, &power_unit);
-//#define PM100D_POWER_UNIT_WATT   (0)
-//#define PM100D_POWER_UNIT_DBM    (1) 
-
+ 
    switch(power_unit)
    {
       case PM100D_POWER_UNIT_DBM:   unit = "dBm";  break;
@@ -406,9 +414,7 @@ void CThicknessMeas_ProtoDlg::MeasurePower()
 	   err = PM100D_measPower(m_InstrHdl_PM100D, &power);
 	   if(err == VI_SUCCESS)
 	   {
-		   
 			strLog.Format(L"%15.9f %s", power*(10^9), unit);
-			//DisplayLog(strLog);
 			m_ctlSTpower.SetWindowTextW(strLog);
 	   }
    }
@@ -769,10 +775,6 @@ CString CThicknessMeas_ProtoDlg::DummyMeasure()
 		L"*MEASure:DARKspectra 1 1 4"; //Run dark measurement, tint ≠ 0 output\r\noutput of data according to defined format
 	    //L"*MEASure:LIGHTspectra 10 1 4"; //Run light measurement (exposured spectrum – with opened shutter or lamp switched on)
 		//L"*MEASure 10 1 4"; //Run measurement with parameters and output of data according to define format
-		
-		//L"CONF:FORM 4";
-	//WriteFwCommand(strCmd);
-	//strCmd = L"*MEAS:REFER 10";
 
     m_strData = WriteFwCommand(strCmd);
 
@@ -816,12 +818,6 @@ void CThicknessMeas_ProtoDlg::OnBnClickedBtWrCmd()
 
 void CThicknessMeas_ProtoDlg::OnBnClickedBtDrawChart()
 {
-	//CString strCmd =L"*PARAmeter:FORMat?";
-	//CString strRet = WriteFwCommand(strCmd); //ex) Predefined format:\t	7\r\n
-
-	//int nIdx = strRet.Find(L"\r");
-	//CString strFormat = strRet.Mid(nIdx-1,1);
-
 	int nSel = ((CComboBox*)GetDlgItem(IDC_CB_FORMAT))->GetCurSel();
 
 	if(nSel == 0)
@@ -836,8 +832,6 @@ void CThicknessMeas_ProtoDlg::OnBnClickedBtDrawChart()
 	{
 		MessageBox(L"format을 선택하세요!", L"ERROR", MB_OK|MB_ICONERROR);
 	}
-	/*m_strChartTitle = m_strCmd;
-	DrawChartFormat7(&m_ChartViewer);*/
 }
 
 CString CThicknessMeas_ProtoDlg::WriteFwCommand(CString strCmd)
@@ -885,7 +879,6 @@ CString CThicknessMeas_ProtoDlg::WriteFwCommand(CString strCmd)
 	ftStatus = FT_Read(m_ftHandle,RxBuffer,RxBytes,&BytesReceived); 
 	if (ftStatus == FT_OK) 
 	{ 
-		//if (BytesReceived == RxBytes) 
 		if (BytesReceived > 0) 
 		{ 
 			// FT_Read OK 
@@ -912,7 +905,6 @@ CString CThicknessMeas_ProtoDlg::WriteFwCommand(CString strCmd)
 	} 
 	else
 	{
-		//AfxMessageBox(L"FT_Read Timeout");
 		DisplayLog(L"FT_Read Timeout");
 	}
 
@@ -972,20 +964,6 @@ CString CThicknessMeas_ProtoDlg::WriteFwCommand2(CString strCmd)
 		{ 
 			// FT_Read OK 
 			DisplayLog(L"FT_Read OK ");
-
-			//MBCS2Unicode(RxBuffer,TRxBuffer);
-			//strLog.Format(L"%s",TRxBuffer);
-			//strRet.Format(L"%s",TRxBuffer);
-			//DisplayLog(strLog);
-			//if(strRet.Left(1) == 0x07) //07 hex - BELL
-			//{
-			//	SetDlgItemText(IDC_EDIT_MEAS,L"finishing the measurement");
-			//	strRet = L"finishing";
-			//}
-			//else // [06 hex - ACK] data  
-			//{
-			//	SetDlgItemText(IDC_EDIT_MEAS,strRet);
-			//}
 		} 
 		else 
 		{ 
@@ -1005,7 +983,6 @@ CString CThicknessMeas_ProtoDlg::WriteFwCommand2(CString strCmd)
 void  CThicknessMeas_ProtoDlg::GetMeasConfig()
 {
 	GetWavRange(); //Get wavelength range - *CONFigure:WRANge wbeg wend wstp <CR>
-	GetTint(); //
 }
 
 void CThicknessMeas_ProtoDlg::GetWavRange()
@@ -1014,13 +991,6 @@ void CThicknessMeas_ProtoDlg::GetWavRange()
 	str.Replace(L"\r",L"\r\n");
 
 	SetDlgItemText(IDC_ST_WAV_RANGE,str);
-}
-
-void CThicknessMeas_ProtoDlg::GetTint() //Get Integration time (exposure time of detector)
-{
-	CString str = WriteFwCommand(L"*para:tint?");
-	
-	SetDlgItemText(IDC_EDIT_TINT,str);
 }
 
 void CThicknessMeas_ProtoDlg::SetWavRange(int wbeg, int wend, int wstep)
@@ -1097,24 +1067,6 @@ void CThicknessMeas_ProtoDlg::getData()
         m_nextDataTime += DataInterval / 1000.0;
     }
     while (m_nextDataTime < now);
-
-    //
-    // We provide some visual feedback to the latest numbers generated, so you can see the
-    // data being generated.
-    //
-//    char buffer[1024];
-    
-    //sprintf(buffer, "%.2f", m_dataSeriesA[sampleSize - 1]);
-	//sprintf_s(buffer, "%.2f", m_dataSeriesA[sampleSize - 1]);
-
-
-    //m_ValueA.SetWindowText(CString(buffer));
-
-   /* sprintf(buffer, "%.2f", m_dataSeriesB[sampleSize - 1]);
-    m_ValueB.SetWindowText(CString(buffer));
-
-    sprintf(buffer, "%.2f", m_dataSeriesC[sampleSize - 1]);
-    m_ValueC.SetWindowText(CString(buffer));*/
 }
 
 //
@@ -1294,7 +1246,6 @@ void CThicknessMeas_ProtoDlg::DrawChartFormat7(CChartViewer *viewer)
 
 void CThicknessMeas_ProtoDlg::DrawFFTChart(CChartViewer *viewer)
 {
-    
     XYChart *c = new XYChart(700, 400, 0xf4f4f4, 0x000000, 1);
     c->setRoundedFrame(m_extBgColor);
     
@@ -1344,40 +1295,6 @@ void CThicknessMeas_ProtoDlg::DrawFFTChart(CChartViewer *viewer)
 	ZeroMemory(m_nDataArray,sizeof(m_nDataArray));
 	delete c;
 	c = NULL;
-	
-
-    // Now we add the data to the chart. 
-    //double lastTime = m_timeStamps[sampleSize - 1];
-    //if (lastTime != Chart::NoValue)
-    //{
-    //    // Set up the x-axis to show the time range in the data buffer
-    //    c->xAxis()->setDateScale(lastTime - DataInterval * sampleSize / 1000, lastTime);
-    //    
-    //    // Set the x-axis label format
-    //    c->xAxis()->setLabelFormat("{value|hh:nn:ss}");
-
-    //    // Create a line layer to plot the lines
-    //    LineLayer *layer = c->addLineLayer();
-
-    //    // The x-coordinates are the timeStamps.
-    //    layer->setXData(DoubleArray(m_timeStamps, sampleSize));
-
-    //    // The 3 data series are used to draw 3 lines. Here we put the latest data values
-    //    // as part of the data set name, so you can see them updated in the legend box.
-    //    char buffer[1024];
-
-    //    sprintf(buffer, "Alpha: <*bgColor=FFCCCC*> %.2f ", m_dataSeriesA[sampleSize - 1]);
-    //    layer->addDataSet(DoubleArray(m_dataSeriesA, sampleSize), 0xff0000, buffer);
-    //    
-    //    /*sprintf(buffer, "Beta: <*bgColor=CCFFCC*> %.2f ", m_dataSeriesB[sampleSize - 1]);
-    //    layer->addDataSet(DoubleArray(m_dataSeriesB, sampleSize), 0x00cc00, buffer); 
-    //    
-    //    sprintf(buffer, "Gamma: <*bgColor=CCCCFF*> %.2f ", m_dataSeriesC[sampleSize - 1]);
-    //    layer->addDataSet(DoubleArray(m_dataSeriesC, sampleSize), 0x0000ff, buffer);*/
-    //}
-
-    // Set the chart image to the WinChartViewer
-    
 }
 
 // General utilities
@@ -1402,30 +1319,45 @@ WORD MAKE_WORD( const BYTE Byte_hi, const BYTE Byte_lo)
 
 void CThicknessMeas_ProtoDlg::OnBnClickedBtFft()
 {
-	SetTimer(FFT,1000,NULL);
+	GetDlgItem(IDC_EDIT_EXP_TIME)->EnableWindow(FALSE);
+	GetDlgItem(IDC_EDIT_REP_CYC)->EnableWindow(FALSE);
+
+	CString strCmd = L"ESC";
+	WriteFwCommand(strCmd);
+	int nFreq,nTint,nCount;
+	nFreq = GetDlgItemInt(IDC_EDIT_FREQUENCY);
+	nTint = GetDlgItemInt(IDC_EDIT_EXP_TIME);
+	nCount = GetDlgItemInt(IDC_EDIT_FFT_COUNT);
+	//strCmd = L"*PARAmeter:FFTPARAmeter 3000 3 1000";
+	strCmd.Format(L"*PARAmeter:FFTPARAmeter %d %d %d",nFreq,nTint,nCount);
+	WriteFwCommand(strCmd);
+
+	int nElapse = 0;
+	nElapse = GetDlgItemInt(IDC_EDIT_REP_CYC);
+	SetTimer(FFT,nElapse,NULL);
 	//FFTtest();
+}
+
+void CThicknessMeas_ProtoDlg::OnBnClickedBtFftStop()
+{
+	GetDlgItem(IDC_EDIT_EXP_TIME)->EnableWindow(TRUE);
+	GetDlgItem(IDC_EDIT_REP_CYC)->EnableWindow(TRUE);
+
+	KillTimer(FFT);
+
+	CString strCmd = L"ESC";
+	WriteFwCommand(strCmd);
 }
 
 void CThicknessMeas_ProtoDlg::FFTtest()
 {
-	int nSyncMark = 0;
-	CString strCmd = L"ESC";
-	WriteFwCommand(strCmd);
-	strCmd = L"*PARAmeter:FFTPARAmeter 3000 3 1000";
-	WriteFwCommand(strCmd);
-	strCmd = L"*MEASure:FSTMEASure";
+	CString strCmd = L"*MEASure:FSTMEASure";
 
-	m_strCmd = L"*MEASure:FSTMEASure";
-	m_strChartTitle = m_strCmd;
-	strCmd += L"\r";
+	m_strChartTitle = strCmd;
 
-	CString strLog = L"";
-	CString strRet = L"";
 	FT_STATUS ftStatus;
-//	DWORD BytesWritten; 
-//	char TxBuffer[256];// Contains data to write to device 
 
-	strRet = WriteFwCommand2(m_strCmd);
+	WriteFwCommand2(strCmd);
 
 	DWORD RxBytes = 1024+1;
 	DWORD BytesReceived; 
@@ -1434,15 +1366,11 @@ void CThicknessMeas_ProtoDlg::FFTtest()
 	::ZeroMemory(RxBuffer, sizeof(RxBuffer));
 	
 	//FT_GetStatus(m_ftHandle,&RxBytes,&TxBytes,&EventDWord);
-	//double nElapse = 0.2*1000; //read with a timeout of 0.2 seconds
 	double nElapse = 0.5 *1000; //read with a timeout of 0.5 seconds
 	FT_SetTimeouts(m_ftHandle,(ULONG)nElapse,0); 
 	
 	ZeroMemory(m_nDataArray,sizeof(m_nDataArray));
 	ZeroMemory(m_nDataArrTemp,sizeof(m_nDataArrTemp));
-
-	TCHAR TRxBuffer[1024*20];
-	::ZeroMemory(TRxBuffer, sizeof(TRxBuffer));
 
 	ftStatus = FT_Read(m_ftHandle,RxBuffer,RxBytes,&BytesReceived); 
 	WORD data = 0;
@@ -1454,169 +1382,32 @@ void CThicknessMeas_ProtoDlg::FFTtest()
 		//if (BytesReceived == RxBytes) 
 		if (BytesReceived > 0) 
 		{ 
-			// FT_Read OK 
-			DisplayLog(L"FT_Read OK ");
 			int i;
 			for(i=0; i<512; i++)
 			{
-				if(RxBuffer[i] == 0 && RxBuffer[i+1] == 0)
-				{
-					nSyncMark = i;
-					strTemp.Format(L"%d\t",nSyncMark);
-					strData += strTemp;
-				}
 				double d = MAKE_WORD(RxBuffer[2+(i-1)*2], RxBuffer [3+(i-1)*2]);
 				if(d > 0)
 				{
-					m_nDataArray[i] = d;
-					if(d<200)
-					{
-						nSyncMark = i;
-					}
+					m_nDataArrTemp[i] = d;
 				}
 				else
+				{
 					return;
+				}
 			}
 
-			if(strData.GetLength()>1)
-			{
-				strData += L"[SyncMark]";
-				GetLog()->Debug(strData.GetBuffer());
-			}
-
-			double min = m_nDataArray[0];
+			double min = m_nDataArrTemp[0];
 			int m,nMin;
 			//MIN => Sync mark
 			for(m = 0; m < 512; m++)
 			{
-				if(m_nDataArray[m] < min)
+				if(m_nDataArrTemp[m] < min)
 				{
-					min = m_nDataArray[m];
+					min = m_nDataArrTemp[m];
 					nMin = m;
 				}
 			}
-
-			strData.Format(L"MIN = %d",nMin);
-			GetLog()->Debug(strData.GetBuffer());
-
-			strData=L"";
-			for(int k=0; k<70; k++)
-			{
-				if(k == nSyncMark)
-				{
-					strTemp.Format(L"%f Sync mark [%d]\r\n",m_nDataArray[k],k);
-				}
-				else
-				{
-					strTemp.Format(L"%f\r\n",m_nDataArray[k]);
-				}
-				strData += strTemp;
-			}
-			GetLog()->Debug(strData.GetBuffer());
-
-			strData=L"";
-			for(int k=70; k<140; k++)
-			{
-				if(k == nSyncMark)
-				{
-					strTemp.Format(L"%f Sync mark [%d]\r\n",m_nDataArray[k],k);
-				}
-				else
-				{
-					strTemp.Format(L"%f\r\n",m_nDataArray[k]);
-				}
-				strData += strTemp;
-			}
-			GetLog()->Debug(strData.GetBuffer());
-			strData=L"";
-			for(int k=140; k<210; k++)
-			{
-				if(k == nSyncMark)
-				{
-					strTemp.Format(L"%f Sync mark [%d]\r\n",m_nDataArray[k],k);
-				}
-				else
-				{
-					strTemp.Format(L"%f\r\n",m_nDataArray[k]);
-				}
-				strData += strTemp;
-			}
-			GetLog()->Debug(strData.GetBuffer());
-			strData=L"";
-			for(int k=210; k<280; k++)
-			{
-				if(k == nSyncMark)
-				{
-					strTemp.Format(L"%f Sync mark [%d]\r\n",m_nDataArray[k],k);
-				}
-				else
-				{
-					strTemp.Format(L"%f\r\n",m_nDataArray[k]);
-				}
-				strData += strTemp;
-			}
-			GetLog()->Debug(strData.GetBuffer());
-			strData=L"";
-			for(int k=280; k<350; k++)
-			{
-				if(k == nSyncMark)
-				{
-					strTemp.Format(L"%f Sync mark [%d]\r\n",m_nDataArray[k],k);
-				}
-				else
-				{
-					strTemp.Format(L"%f\r\n",m_nDataArray[k]);
-				}
-				strData += strTemp;
-			}
-			GetLog()->Debug(strData.GetBuffer());
-			strData=L"";
-			for(int k=350; k<420; k++)
-			{
-				if(k == nSyncMark)
-				{
-					strTemp.Format(L"%f Sync mark [%d]\r\n",m_nDataArray[k],k);
-				}
-				else
-				{
-					strTemp.Format(L"%f\r\n",m_nDataArray[k]);
-				}
-				strData += strTemp;
-			}
-			GetLog()->Debug(strData.GetBuffer());
-			strData=L"";
-			for(int k=420; k<490; k++)
-			{
-				if(k == nSyncMark)
-				{
-					strTemp.Format(L"%f Sync mark [%d]\r\n",m_nDataArray[k],k);
-				}
-				else
-				{
-					strTemp.Format(L"%f\r\n",m_nDataArray[k]);
-				}
-				strData += strTemp;
-			}
-			GetLog()->Debug(strData.GetBuffer());
-			strData=L"";
-			for(int k=490; k<512; k++)
-			{
-				if(k == nSyncMark)
-				{
-					strTemp.Format(L"%f Sync mark [%d]\r\n",m_nDataArray[k],k);
-				}
-				else
-				{
-					strTemp.Format(L"%f\r\n",m_nDataArray[k]);
-				}
-				strData += strTemp;
-			}
-
-			for(i=0;i<512;i++)
-			{
-				m_nDataArrTemp[i] = m_nDataArray[i];
-			}
-			ZeroMemory(m_nDataArray,sizeof(m_nDataArray));
+			//Data Arrray Rearrange
 			int nContinue = 512-nMin; 
 			for(i=0;i<nContinue;i++)
 			{
@@ -1627,34 +1418,24 @@ void CThicknessMeas_ProtoDlg::FFTtest()
 			{
 				m_nDataArray[nContinue+i] = m_nDataArrTemp[i];
 			}
-
-			strData += L"---------------------------------------------------------";
-			GetLog()->Debug(strData.GetBuffer());
 		} 
 		else 
 		{ 
-			// FT_Read Failed 
-			DisplayLog(L"FT_Read Failed ");
+			m_nNGcount++;
+			SetDlgItemInt(IDC_EDIT_NG,m_nNGcount);
 		} 
 	} 
 	else
 	{
-		//AfxMessageBox(L"FT_Read Timeout");
-		DisplayLog(L"FT_Read Timeout");
+		m_nNGcount++;
+		SetDlgItemInt(IDC_EDIT_NG,m_nNGcount);
 	}
-//	if((int)RxBuffer[1] == 0 && (int) RxBuffer [2] == 0)
+
+	DrawFFTChart(&m_ChartViewer);
 	
-	//if(nSyncMark == 1)
-	{
-		DrawFFTChart(&m_ChartViewer);
-	}
+	m_nTotalScan++;
+	SetDlgItemInt(IDC_EDIT_COUNT,m_nTotalScan);
+	
 }
 
-void CThicknessMeas_ProtoDlg::OnBnClickedBtFftStop()
-{
-	// TODO: 여기에 컨트롤 알림 처리기 코드를 추가합니다.
-	KillTimer(FFT);
 
-	CString strCmd = L"ESC";
-	WriteFwCommand(strCmd);
-}

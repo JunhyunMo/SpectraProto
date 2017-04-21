@@ -64,7 +64,6 @@ protected:
 	void      GetMeasConfig();
 	void	  GetWavRange();
 	void	  SetWavRange(int wbeg, int wend, int wstep);
-	void      GetTint();
 	void	  FFTtest();
 
 	//chart
@@ -73,7 +72,6 @@ protected:
 	double		 m_nDataArray[512];
 	double		 m_nDataArrTemp[512];
 	double		 m_nXDataArray[512], m_nYDataArray[512];
-	//WORD         m_nXData[512], m_nYData[512];
 	char		 m_ChTitle;
 
 	void getData();
