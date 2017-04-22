@@ -56,10 +56,11 @@ protected:
 	void Unicode2MBCS(LPWSTR lpData,LPSTR lpRtd);
 
 	FT_HANDLE m_ftHandle;
-	int		  m_nTotalScan,m_nNGcount;
+	int		  m_nTotalScan,m_nIMON_USB_Recon_Cnt,m_nFFT_DoubleFault;
 	CString	  DummyMeasure();
 	CString   WriteFwCommand(CString strCmd);
 	CString   WriteFwCommand2(CString strCmd);
+	void	  IMON_Reconnect();
 	
 	void      GetMeasConfig();
 	void	  GetWavRange();
