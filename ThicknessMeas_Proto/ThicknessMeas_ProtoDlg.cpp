@@ -168,7 +168,7 @@ BOOL CThicknessMeas_ProtoDlg::OnInitDialog()
 	SetDlgItemInt(IDC_EDIT_FREQUENCY,3000);
 	SetDlgItemInt(IDC_EDIT_EXP_TIME,3);
 	SetDlgItemInt(IDC_EDIT_FFT_COUNT,100);
-	SetDlgItemInt(IDC_EDIT_REP_CYC,100);
+	SetDlgItemInt(IDC_EDIT_REP_CYC,500);
 
 	SetDlgItemText(IDC_EDIT_GET_CMD,L"*PARAmeter:FFTPARAmeter?");
 
@@ -627,6 +627,9 @@ void CThicknessMeas_ProtoDlg::OnBnClickedMfcbtTec()
 		MessageBox(L"Remote Mode off. Initialize First",L"Notice",MB_OK|MB_ICONWARNING);
 		return;
 	}
+
+	IMON_Reconnect();
+
 	ViStatus    err;
 	
 	if(m_bTEC == TRUE)
@@ -665,6 +668,9 @@ void CThicknessMeas_ProtoDlg::OnBnClickedMfcbtLaser()
 		MessageBox(L"Remote Mode off. Initialize First",L"Notice",MB_OK|MB_ICONWARNING);
 		return;
 	}
+
+	IMON_Reconnect();
+
 	ViStatus    err;
 
 	if(m_bLaser == TRUE)
@@ -715,27 +721,50 @@ void CThicknessMeas_ProtoDlg::Unicode2MBCS(LPWSTR lpData,LPSTR lpRtd)
 void CThicknessMeas_ProtoDlg::OnBnClickedBtOpen()
 {
 	FT_STATUS ftStatus;
+	UCHAR LatencyTimer = 2; //ms
+
 	ftStatus = FT_Open(0,&m_ftHandle); 
 
+	if (ftStatus != FT_OK) 
+	{
+		DisplayLog(L" FT_Open failed");
+		return;
+	}
+
+	DisplayLog(L"-------------------------I-MON open-------------------------");
+	GetDlgItem(IDC_BT_OPEN)->EnableWindow(FALSE);
+
+	ftStatus = FT_Purge(m_ftHandle, FT_PURGE_RX | FT_PURGE_TX);
 	if (ftStatus == FT_OK) 
 	{
-		// FT_Open OK, use ftHandle to access device 
-		DisplayLog(L"-------------------------I-MON open-------------------------");
-		GetDlgItem(IDC_BT_OPEN)->EnableWindow(FALSE);
-		/*CString strDeviceID = WriteFwCommand(L"*IDN?");
-		CString strFWver = WriteFwCommand(L"*VERS?");
-		CString str;
-		str.Format(L"%s / %s", strDeviceID, strFWver);
-		SetDlgItemText(IDC_ST_IMON_INFO,str);
-
-		GetMeasConfig();*/
-
+		DisplayLog(L"Purge both Rx and Tx buffers");
 	}
-	else 
-    { 
-		// FT_Open failed
-		DisplayLog(L" FT_Open failed");
+
+	ftStatus = FT_SetTimeouts(m_ftHandle,1000,1000); // Set read timeout of 1000ms, write timeout of 1000ms
+	if (ftStatus == FT_OK) 
+	{
+		DisplayLog(L"Set read timeout of 1000ms, write timeout of 1000ms");
 	}
+
+	CString strSensorTemper = WriteFwCommand(L"*MEASure:TEMPErature");
+	
+	SetDlgItemText(IDC_EDIT_SENSOR_TEMPERATURE, strSensorTemper);
+
+	ftStatus = FT_SetLatencyTimer(m_ftHandle, LatencyTimer);
+		
+	if (ftStatus == FT_OK) 
+	{
+		DisplayLog(L"LatencyTimer set to 2 milliseconds");
+	}
+
+	/*CString strDeviceID = WriteFwCommand(L"*IDN?");
+	CString strFWver = WriteFwCommand(L"*VERS?");
+	CString str;
+	str.Format(L"%s / %s", strDeviceID, strFWver);
+	SetDlgItemText(IDC_ST_IMON_INFO,str);
+
+	GetMeasConfig();*/
+
 }
 
 void CThicknessMeas_ProtoDlg::OnBnClickedBtClose()
@@ -949,8 +978,8 @@ CString CThicknessMeas_ProtoDlg::WriteFwCommand2(CString strCmd)
 	::ZeroMemory(RxBuffer, sizeof(RxBuffer));
 
 	//TCHAR TRxBuffer[256*2];
-	TCHAR TRxBuffer[1024*20];
-	::ZeroMemory(TRxBuffer, sizeof(TRxBuffer));
+	//TCHAR TRxBuffer[1024*20];
+	//::ZeroMemory(TRxBuffer, sizeof(TRxBuffer));
 	
 	//FT_GetStatus(m_ftHandle,&RxBytes,&TxBytes,&EventDWord);
 	double nElapse = 0.2*1000; //read with a timeout of 0.2 seconds
@@ -1369,9 +1398,7 @@ void CThicknessMeas_ProtoDlg::FFTtest()
 	::ZeroMemory(RxBuffer, sizeof(RxBuffer));
 	
 	//FT_GetStatus(m_ftHandle,&RxBytes,&TxBytes,&EventDWord);
-	double nElapse = 0.5 *1000; //read with a timeout of 0.5 seconds
-	FT_SetTimeouts(m_ftHandle,(ULONG)nElapse,0); 
-	
+
 	ZeroMemory(m_nDataArray,sizeof(m_nDataArray));
 	ZeroMemory(m_nDataArrTemp,sizeof(m_nDataArrTemp));
 
@@ -1395,8 +1422,6 @@ void CThicknessMeas_ProtoDlg::FFTtest()
 				}
 				else
 				{
-					//FT_Purge(m_ftHandle,FT_PURGE_RX);
-
 					m_nFFT_DoubleFault++;
 					
 					if(m_nFFT_DoubleFault >= 2)
@@ -1429,11 +1454,13 @@ void CThicknessMeas_ProtoDlg::FFTtest()
 			{
 				m_nDataArray[i] = m_nDataArrTemp[nMin+i];
 			}
-			
+			//memcpy_s(m_nDataArray,sizeof(m_nDataArray),m_nDataArrTemp+nMin,nContinue);
+
 			for(i=0;i<nMin;i++)
 			{
 				m_nDataArray[nContinue+i] = m_nDataArrTemp[i];
 			}
+			//memcpy_s(m_nDataArray+nContinue,sizeof(m_nDataArray),m_nDataArrTemp,nMin);
 		} 
 		else 
 		{ 
