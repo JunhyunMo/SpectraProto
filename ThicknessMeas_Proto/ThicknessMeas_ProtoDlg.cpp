@@ -1354,8 +1354,9 @@ void CThicknessMeas_ProtoDlg::OnBnClickedBtFft()
 	GetDlgItem(IDC_EDIT_EXP_TIME)->EnableWindow(FALSE);
 	GetDlgItem(IDC_EDIT_REP_CYC)->EnableWindow(FALSE);
 
-	CString strCmd = L"ESC";
-	WriteFwCommand(strCmd);
+	CString strCmd = L"";
+	/*CString strCmd = L"ESC";
+	WriteFwCommand(strCmd);*/
 	int nFreq,nTint,nCount;
 	nFreq = GetDlgItemInt(IDC_EDIT_FREQUENCY);
 	nTint = GetDlgItemInt(IDC_EDIT_EXP_TIME);
@@ -1383,11 +1384,13 @@ void CThicknessMeas_ProtoDlg::OnBnClickedBtFftStop()
 
 void CThicknessMeas_ProtoDlg::FFTtest()
 {
+	FT_STATUS ftStatus;
+
+	KillTimer(FFT);
+
 	CString strCmd = L"*MEASure:FSTMEASure";
 
 	m_strChartTitle = strCmd;
-
-	FT_STATUS ftStatus;
 
 	WriteFwCommand2(strCmd);
 
@@ -1428,11 +1431,13 @@ void CThicknessMeas_ProtoDlg::FFTtest()
 					{
 						/*strCmd = L"*RST";
 						WriteFwCommand2(strCmd);*/
+						FT_Purge(m_ftHandle, FT_PURGE_RX | FT_PURGE_TX);
 						m_nIMON_USB_Recon_Cnt++;
 						IMON_Reconnect();
 						SetDlgItemInt(IDC_EDIT_NG,m_nIMON_USB_Recon_Cnt);
 						m_nFFT_DoubleFault=0;
 					}
+					SetTimer(FFT,100,NULL);
 					return;
 				}
 			}
@@ -1482,6 +1487,10 @@ void CThicknessMeas_ProtoDlg::FFTtest()
 	m_nFFT_DoubleFault--;
 
 	SetDlgItemInt(IDC_EDIT_COUNT,m_nTotalScan);
+
+	FT_Purge(m_ftHandle, FT_PURGE_RX | FT_PURGE_TX);
+	
+	SetTimer(FFT,100,NULL);
 }
 
 void CThicknessMeas_ProtoDlg::IMON_Reconnect()
