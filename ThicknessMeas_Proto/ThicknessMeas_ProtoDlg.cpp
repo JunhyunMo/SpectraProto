@@ -168,7 +168,7 @@ BOOL CThicknessMeas_ProtoDlg::OnInitDialog()
 	SetDlgItemInt(IDC_EDIT_FREQUENCY,3000);
 	SetDlgItemInt(IDC_EDIT_EXP_TIME,3);
 	SetDlgItemInt(IDC_EDIT_FFT_COUNT,100);
-	SetDlgItemInt(IDC_EDIT_REP_CYC,500);
+	SetDlgItemInt(IDC_EDIT_REP_CYC,100);
 
 	SetDlgItemText(IDC_EDIT_GET_CMD,L"*PARAmeter:FFTPARAmeter?");
 
@@ -435,7 +435,6 @@ void CThicknessMeas_ProtoDlg::OnBnClickedBtClosePm100d()
 	}
 }
 
-
 //////////////////////////////////////////////CLD1015 - Laser Diode Controller////////////////////////////////////////////////////////
 /*---------------------------------------------------------------------------
   Find Instruments
@@ -495,7 +494,6 @@ ViStatus CThicknessMeas_ProtoDlg::Get_CLD1015_Device_ID(ViSession instrHdl)
    err = TL4000_identificationQuery (instrHdl, VI_NULL, nameBuf, snBuf, fwRevBuf);
    if(err) return(err);
    
-
 	str.Format(L"instrument: %S", nameBuf);
 	DisplayLog(str);
 	str.Format(L"serial no: %S", snBuf);
@@ -548,7 +546,6 @@ void CThicknessMeas_ProtoDlg::OnBnClickedBtInitCld1015()
    {
 	   DisplayLog(L"----------------CLD1015 Init---------------------");
    }
-
 
    // Get instrument info
    err = Get_CLD1015_Device_ID(m_InstrHdl_CLD1015);
@@ -757,13 +754,13 @@ void CThicknessMeas_ProtoDlg::OnBnClickedBtOpen()
 		DisplayLog(L"LatencyTimer set to 2 milliseconds");
 	}
 
-	/*CString strDeviceID = WriteFwCommand(L"*IDN?");
+	CString strDeviceID = WriteFwCommand(L"*IDN?");
 	CString strFWver = WriteFwCommand(L"*VERS?");
 	CString str;
 	str.Format(L"%s / %s", strDeviceID, strFWver);
 	SetDlgItemText(IDC_ST_IMON_INFO,str);
 
-	GetMeasConfig();*/
+	GetMeasConfig();
 
 }
 
@@ -835,6 +832,9 @@ void CThicknessMeas_ProtoDlg::OnBnClickedBtWrCmd()
 	if(strCmd.GetLength() > 0)
 	{	
 		m_strData = WriteFwCommand(strCmd);		
+AfxMessageBox(m_strData);
+//for test MJH
+//GetLog()->Debug(m_strData.GetBuffer());
 	}
 	else
 	{
@@ -842,8 +842,8 @@ void CThicknessMeas_ProtoDlg::OnBnClickedBtWrCmd()
 		return;
 	}
 
-	CString strErr = WriteFwCommand(L"*STATus:ERRor?");
-	SetDlgItemText(IDC_EDIT_ERR,strErr);
+	/*CString strErr = WriteFwCommand(L"*STATus:ERRor?");
+	SetDlgItemText(IDC_EDIT_ERR,strErr);*/
 }
 
 void CThicknessMeas_ProtoDlg::OnBnClickedBtDrawChart()
@@ -918,6 +918,8 @@ CString CThicknessMeas_ProtoDlg::WriteFwCommand(CString strCmd)
 			strLog.Format(L"%s",TRxBuffer);
 			strRet.Format(L"%s",TRxBuffer);
 			DisplayLog(strLog);
+//for test MJH
+//GetLog()->Debug(strRet.GetBuffer());  //?
 			if(strRet.Left(1) == 0x15) //15 hex - NACK
 			{
 				SetDlgItemText(IDC_EDIT_MEAS,L"NACK");
@@ -1017,10 +1019,23 @@ void  CThicknessMeas_ProtoDlg::GetMeasConfig()
 
 void CThicknessMeas_ProtoDlg::GetWavRange()
 {
-	CString str = WriteFwCommand(L"*CONFigure:WRANge?");
-	str.Replace(L"\r",L"\r\n");
+	/*CString str = WriteFwCommand(L"*CONFigure:WRANge?");
+	str.Replace(L"\r",L"\r\n");*/
 
-	SetDlgItemText(IDC_ST_WAV_RANGE,str);
+	CString strRange = L"";
+
+	CString str = WriteFwCommand(L"*para:wavbeg?");
+	//str.Replace(L"\r",L"\r\n");
+	strRange += str;
+	str = WriteFwCommand(L"*para:wavend?");
+	//str.Replace(L"\r",L"\r\n");
+	strRange += str;
+
+	//str = WriteFwCommand(L"*CONFigure:WRANge?");
+	////str.Replace(L"\r",L"\r\n");
+	//strRange += str;
+
+	SetDlgItemText(IDC_ST_WAV_RANGE,strRange);
 }
 
 void CThicknessMeas_ProtoDlg::SetWavRange(int wbeg, int wend, int wstep)
@@ -1043,15 +1058,7 @@ void CThicknessMeas_ProtoDlg::SetWavRange(int wbeg, int wend, int wstep)
 	UpdateData(FALSE);
 }
 
-void CThicknessMeas_ProtoDlg::OnBnClickedBtSetWavRange()
-{
-	int nWbeg = GetDlgItemInt(IDC_EDIT_WBEG);
-	int nWend = GetDlgItemInt(IDC_EDIT_WEND);
-	int nWstep = GetDlgItemInt(IDC_EDIT_WSTEP);
-	SetWavRange(nWbeg,nWend,nWstep);
 
-	GetWavRange();
-}
 
 //////////////////////////Chart
 // View port changed event
@@ -1498,4 +1505,229 @@ void CThicknessMeas_ProtoDlg::IMON_Reconnect()
 	OnBnClickedBtClose();
 	OnBnClickedBtOpen();
 }
+void CThicknessMeas_ProtoDlg::OnBnClickedBtSetWavRange()
+{
+	/*int nWbeg = GetDlgItemInt(IDC_EDIT_WBEG);
+	int nWend = GetDlgItemInt(IDC_EDIT_WEND);
+	int nWstep = GetDlgItemInt(IDC_EDIT_WSTEP);
+	SetWavRange(nWbeg,nWend,nWstep);
+*/
+	//GetWavRange();
 
+	//[*PARAmeter:FITn arg <CR>]
+	//[*para:fitn] - not tested
+	/*double Fit0 = 4.742971e+00;
+	double Fit1 = 3.260666e-01;
+	double Fit2 = -7.163340e-05;
+	double Fit3 = 6.427100e-08;
+	double Fit4 = -2.238460e-11;*/
+
+	//double result;
+
+	//[LabView Sample]
+	/*double Fit0 = 8.7753E+2;
+	double Fit1 = 3.8982E+0;
+	double Fit2 = -4.4203E-3;
+	double Fit3 = 1.4131E-5;
+	double Fit4 =-4.1631E-8;
+	double Fit5 =5.1075E-11;*/
+
+	//[*RDUSR2\s0]
+	/*double Fit0 = 1.595819988E+03;
+	double Fit1 = -1.380533351E-01;
+	double Fit2 = -6.506613253E-05;
+	double Fit3 = +1.141395153E-08;
+	double Fit4 = -3.256433466E-11+2.3;*/
+
+	//double result;//,result02;
+	////double offset = -173;
+	//result = Fit0 + Fit1*0 +Fit2*1 + Fit3*2+ Fit4*3;
+	////result += offset;
+	//CString str,strAll;
+	//str.Format(L"pixel 512 %f", result);
+	//AfxMessageBox(str);
+
+	//strAll += str;
+	//strAll += L"\r\n";
+
+	///*result02 = (result - (-4.4203E-3*29.8) - 1.4131E-5) / (1 + (8.7753E+2*29.8) + 3.8982E+0);
+	//str.Format(L"pixel 512 temperature drift %f", result02);
+	//AfxMessageBox(str);*/
+
+
+	//result = Fit0 + Fit1*1 +Fit2*1 + Fit3*2+ Fit4*3;
+	////result += offset;
+	//str.Format(L"pixel 511 %f", result);
+	//AfxMessageBox(str);
+
+	//strAll += str;
+	//strAll += L"\r\n";
+
+	///*result02 = (result - (-4.4203E-3*29.8) - 1.4131E-5) / (1 + (8.7753E+2*29.8) + 3.8982E+0);
+	//str.Format(L"pixel 511 temperature drift %f", result02);
+	//AfxMessageBox(str);*/
+
+	//result = Fit0 + Fit1*500 +Fit2*2 + Fit3*3 + Fit4*4;
+	////result += offset;
+	//str.Format(L"pixel %d %f", 512-500 ,result);
+	//AfxMessageBox(str);
+
+	///*result02 = (result - (-4.4203E-3*29.8) - 1.4131E-5) / (1 + (8.7753E+2*29.8) + 3.8982E+0);
+	//str.Format(L"pixel 12 temperature drift %f", result02);
+	//AfxMessageBox(str);*/
+
+	//strAll += str;
+	//strAll += L"\r\n";
+
+	//result = Fit0 + Fit1*511 +Fit2*2 + Fit3*3+ Fit4*4;
+	////result += offset;
+	//str.Format(L"pixel %d %f", 512-511, result);
+	//AfxMessageBox(str);
+
+	///*result02 = (result - (-4.4203E-3*29.8) - 1.4131E-5) / (1 + (8.7753E+2*29.8) + 3.8982E+0);
+	//str.Format(L"pixel 0 temperature drift %f", result02);
+	//AfxMessageBox(str);*/
+
+	//strAll += str;
+
+	//AfxMessageBox(strAll);
+	////CString str;
+	////result = Fit0 + Fit1*2 +Fit2*(2**2) + Fit3*(2**3)+ Fit4*(2**4) + Fit5*(2**5);
+	///*result = Fit0 + Fit1*2 +Fit2*(2^2) + Fit3*(2^3)+ Fit4*(2^4) + Fit5*(2^5);
+	//str.Format(L"pixel2 %f", result);
+	//AfxMessageBox(str);*/
+
+	///*result02 = (result - (-4.4203E-3*29.8) - 1.4131E-5) / (1 + (8.7753E+2*29.8) + 3.8982E+0);
+	//str.Format(L"pixel2 temperature drift %f", result02);
+	//AfxMessageBox(str);*/
+
+	//Certificate of Conformance
+	//Calibration coefficients - A + B1*pix + B2*pix^2 + B3*pix^3 + B4*pix^4 + B5*pix^5, pix = 0..511
+	//double dA = 1.595820E+03; //Intercept,A
+	//double B1 = -1.380533E-01; //First coefficient, B1
+	//double B2 = -6.506613E-05;//Second coefficient, B2
+	//double B3 = 1.141395E-08;//Third coefficient, B3
+	//double B4 = -3.256433E-11;//Fourth coefficient, B4
+	//double B5 = 2.334266E-14;//Fifth coefficient, B5
+	////Temperature coefficients -  (dLamda - b*dTemperature - b0) / (1 + a*dTemperature + a0);
+	//double a  =  4.049996E-06;
+	//double a0 = -1.201354E-04;
+	//double b  = -5.979490E-03;
+	//double b0 =  1.781207E-01;
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+	double dWavLen = 0.0;
+	double dWavLenF = 0.0;
+	double dTemperature = MeasureTemperature();
+	CString strTemp,strResult;
+
+	int nCnt = 0;
+
+	for(int i = 0; i<512+122; i++)
+	{
+		dWavLen = WavLenCalib(i);
+		//dWavLen = WavLenFit(i);
+		
+		dWavLenF = FixTemperDrift(dWavLen, dTemperature);
+		
+		strTemp.Format(L"%f\t", dWavLenF);
+		
+		strResult += strTemp;
+
+		nCnt++;
+	}
+
+	CString strCnt;
+	strCnt.Format(L"\tPixel Count : %d", nCnt);
+	strResult += strCnt;
+	AfxMessageBox(strResult);
+	//GetLog()->Debug(strResult.GetBuffer());
+
+	//MeasureTemperature();
+}
+
+double CThicknessMeas_ProtoDlg::WavLenCalib(int pix) //A + B1*pix + B2*pix^2 + B3*pix^3 + B4*pix^4 + B5*pix^5, pix = 0..511
+{
+	//[Certificate of Conformance]
+	double A  =  1.595820E+03; //Intercept,A
+	double B1 = -1.380533E-01; //First coefficient, B1
+	double B2 = -6.506613E-05;//Second coefficient, B2
+	double B3 =  1.141395E-08;//Third coefficient, B3
+	double B4 = -3.256433E-11;//Fourth coefficient, B4
+	double B5 =  2.334266E-14;//Fifth coefficient, B5
+
+	//In I-MON LabView Evaluation App
+	/*double A =   1.595820E+3; 
+	double B1 = -1.380533E-1;
+	double B2 = -6.506613E-5;
+	double B3 =  1.141395E-8;
+	double B4 = -3.256433E-11;
+	double B5 = 2.334266E-14;*/
+
+	double dWavLen = 0.0;
+	dWavLen = A + B1*pix + B2*(pix^2) + B3*(pix^3) + B4*(pix^4) + B5*(pix^5);
+	
+	return dWavLen;
+}
+
+//double CThicknessMeas_ProtoDlg::WavLenFit(double pix)
+//{
+//	double fit0 =  4.742971e+00;
+//	double fit1 =  3.260666e-01;
+//	double fit2 = -7.163340e-05;
+//	double fit3 =  6.427100e-08;
+//	double fit4 = -2.238460e-11;
+//
+//	double dWavLen = 0.0;
+//	dWavLen = fit0 + fit1*pix + fit2*(pix+2) + fit3*(pix+3) + fit4*(pix+4);
+//	return dWavLen;
+//}
+
+double CThicknessMeas_ProtoDlg::FixTemperDrift(double dLamda, double dTemperature)
+{
+	double calibrValue = 0.0; 
+	
+	//[Certificate of Conformance]
+	double a  =  4.049996E-06;
+	double a0 = -1.201354E-04;
+	double b  = -5.979490E-03;
+	double b0 =  1.781207E-01;
+
+	//In I-MON LabView Evaluation App
+	/*double a  =  4.049996E-6;
+	double a0 = -1.201354E-4;
+	double b  = -5.979490E-3;
+	double b0 =  1.781207E-1;*/
+
+
+	//correction
+	calibrValue = (dLamda - (b*dTemperature) - b0)/(1 + (a*dTemperature) + a0);
+
+	return calibrValue;
+}
+
+double CThicknessMeas_ProtoDlg::MeasureTemperature()
+{
+	double dTemperature = 0.0;
+	CString str = WriteFwCommand(L"*MEASure:TEMPErature");
+	//AfxMessageBox(str);
+	int nIdx = str.Find(L":");
+	AfxMessageBox(str.Mid(nIdx+1));
+	CString strTemperature = str.Mid(nIdx+1);
+	dTemperature = _wtof(strTemperature);
+	return dTemperature;
+}
+//Certificate of Conformance
+//Calibration coefficients - A + B1*pix + B2*pix^2 + B3*pix^3 + B4*pix^4 + B5*pix^5, pix = 0..511
+//double A = 1.595820E+03; //Intercept,A
+//double B1 = -1.380533E-01; //First coefficient, B1
+//double B2 = -6.506613E-05;//Second coefficient, B2
+//double B3 = 1.141395E-08;//Third coefficient, B3
+//double B4 = -3.256433E-11;//Fourth coefficient, B4
+//double B5 = 2.334266E-14;//Fifth coefficient, B5
+////Temperature coefficients -  (dLamda - b*dTemperature - b0) / (1 + a*dTemperature + a0);
+//double a  =  4.049996E-06;
+//double a0 = -1.201354E-04;
+//double b  = -5.979490E-03;
+//double b0 =  1.781207E-01;

@@ -66,6 +66,10 @@ protected:
 	void	  GetWavRange();
 	void	  SetWavRange(int wbeg, int wend, int wstep);
 	void	  FFTtest();
+	double    WavLenCalib(int pix); // Wavelength Calibration - 파장교정
+	//double    WavLenFit(double pix); //wavelength fit (?)
+	double	  FixTemperDrift(double dLamda, double dTemperature); // Compensation for Temperature Drift - 온도편차보정
+	double	  MeasureTemperature();
 
 	//chart
 	CChartViewer m_ChartViewer;
