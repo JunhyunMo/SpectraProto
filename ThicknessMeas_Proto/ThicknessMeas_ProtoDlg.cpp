@@ -1661,7 +1661,7 @@ void CThicknessMeas_ProtoDlg::OnBnClickedBtSetWavRange()
 
 	for(int i = 0; i<512/*+122*/; i++)
 	{
-		dWavLen = WavLenCalib(i);
+		dWavLen = WavLenCalib((double)i);
 		//dWavLen = WavLenFit(i);
 		
 		dWavLenF = FixTemperDrift(dWavLen, dTemperature);
@@ -1682,15 +1682,22 @@ void CThicknessMeas_ProtoDlg::OnBnClickedBtSetWavRange()
 	//MeasureTemperature();
 }
 
-double CThicknessMeas_ProtoDlg::WavLenCalib(int pix) //A + B1*pix + B2*pix^2 + B3*pix^3 + B4*pix^4 + B5*pix^5, pix = 0..511
+double CThicknessMeas_ProtoDlg::WavLenCalib(double pix) //A + B1*pix + B2*pix^2 + B3*pix^3 + B4*pix^4 + B5*pix^5, pix = 0..511
 {
 	//[Certificate of Conformance]
-	double A  =  1.595820E+03; //Intercept,A
-	double B1 = -1.380533E-01; //First coefficient, B1
-	double B2 = -6.506613E-05;//Second coefficient, B2
+	double A  =  1.595820E+03; //Intercept,A 
+	double B1 = -1.380533E-01; //First coefficient, 
+	double B2 = -6.506613E-05;//Second coefficient, 
 	double B3 =  1.141395E-08;//Third coefficient, B3
 	double B4 = -3.256433E-11;//Fourth coefficient, B4
 	double B5 =  2.334266E-14;//Fifth coefficient, B5
+
+	//double A  =  1595.820000; //Intercept,A 
+	//double B1 = -1.38053300E-01; //First coefficient, 
+	//double B2 = -6.506613000E-05;//Second coefficient, 
+	//double B3 =  1.141395000E-08;//Third coefficient, B3
+	//double B4 = -3.2564330000E-11;//Fourth coefficient, B4
+	//double B5 =  2.3342660000E-14;//Fifth coefficient, B5
 
 	//In I-MON LabView Evaluation App
 	/*double A =   1.595820E+3; 
@@ -1701,7 +1708,7 @@ double CThicknessMeas_ProtoDlg::WavLenCalib(int pix) //A + B1*pix + B2*pix^2 + B
 	double B5 = 2.334266E-14;*/
 
 	double dWavLen = 0.0;
-	dWavLen = A + B1*pix + B2*(pix^2) + B3*(pix^3) + B4*(pix^4) + B5*(pix^5);
+	dWavLen = A + B1*pix + B2*(pix*pix) + B3*(pix*pix*pix) + B4*(pix*pix*pix*pix) + B5*(pix*pix*pix*pix*pix);
 	
 	return dWavLen;
 }
