@@ -57,6 +57,7 @@ protected:
 
 	FT_HANDLE m_ftHandle;
 	int		  m_nTotalScan,m_nIMON_USB_Recon_Cnt,m_nFFT_DoubleFault;
+	//int	      m_nIMON_BitErr;
 	CString	  DummyMeasure();
 	CString   WriteFwCommand(CString strCmd);
 	CString   WriteFwCommand2(CString strCmd);

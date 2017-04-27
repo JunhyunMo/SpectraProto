@@ -66,6 +66,7 @@ CThicknessMeas_ProtoDlg::CThicknessMeas_ProtoDlg(CWnd* pParent /*=NULL*/)
 	m_nTotalScan = 0;
 	m_nIMON_USB_Recon_Cnt = 0;
 	m_nFFT_DoubleFault = 0;
+//	m_nIMON_BitErr = 0;
 
 	m_strChartTitle = L"";
 	m_strCmd = L"";
@@ -1445,6 +1446,8 @@ void CThicknessMeas_ProtoDlg::FFTtest()
 						m_nFFT_DoubleFault=0;
 					}
 					SetTimer(FFT,100,NULL);
+					/*m_nIMON_BitErr++;
+					SetDlgItemInt(IDC_EDIT_NG2,m_nIMON_BitErr);*/
 					return;
 				}
 			}
@@ -1624,7 +1627,7 @@ void CThicknessMeas_ProtoDlg::OnBnClickedBtSetWavRange()
 
 	int nCnt = 0;
 
-	for(int i = 0; i<512+122; i++)
+	for(int i = 0; i<512/*+122*/; i++)
 	{
 		dWavLen = WavLenCalib(i);
 		//dWavLen = WavLenFit(i);
