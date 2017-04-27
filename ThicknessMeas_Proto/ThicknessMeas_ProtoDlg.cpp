@@ -70,6 +70,7 @@ CThicknessMeas_ProtoDlg::CThicknessMeas_ProtoDlg(CWnd* pParent /*=NULL*/)
 
 	m_strChartTitle = L"";
 	m_strCmd = L"";
+	m_dTemperature = 0.0;
 }
 
 void CThicknessMeas_ProtoDlg::DoDataExchange(CDataExchange* pDX)
@@ -1114,6 +1115,8 @@ void CThicknessMeas_ProtoDlg::DrawChartFormat4(CChartViewer *viewer)
 {
 	m_nTotalScan++;
 
+	ZeroMemory(m_nXDataArray,sizeof(m_nXDataArray));
+
 	int	nCnt = 0;
 	int nIdx1 = 0;
 	int nIdx2 = 0;
@@ -1129,6 +1132,11 @@ void CThicknessMeas_ProtoDlg::DrawChartFormat4(CChartViewer *viewer)
 	   }
 	}
 	while(nIdx2 != -1);
+
+	for(int i=0; i<512; i++)
+	{
+		m_nXDataArray[i] = i+1;
+	}
 
 	if(nCnt != 513)
 	{
@@ -1157,22 +1165,27 @@ void CThicknessMeas_ProtoDlg::DrawChartFormat4(CChartViewer *viewer)
     c->xAxis()->setTitle("Pixel","arialbd.ttf", 10);
     c->yAxis()->setTitle("?", "arialbd.ttf", 10);
 
-	// Configure the x-axis to auto-scale with at least 75 pixels between major tick and 
-    // 15  pixels between minor ticks. This shows more minor grid lines on the chart.
-    c->xAxis()->setTickDensity(75, 15);
-
     // Set the axes width to 2 pixels
     c->xAxis()->setWidth(2);
     c->yAxis()->setWidth(2);
 
-	c->addAreaLayer(DoubleArray(m_nDataArray, (int)(sizeof(m_nDataArray) / sizeof(m_nDataArray[0]))),
+	LineLayer *layer = c->addLineLayer();
+	c->xAxis()->setDateScale(0,512);
+    layer->setXData(DoubleArray(m_nXDataArray, (int)(sizeof(m_nXDataArray) / sizeof(m_nXDataArray[0]))));
+
+	/*c->addAreaLayer(DoubleArray(m_nDataArray, (int)(sizeof(m_nDataArray) / sizeof(m_nDataArray[0]))),
+        0x80ff0000, "", 3);*/
+	//c->yAxis()->setDateScale(0,30000);
+	layer->addDataSet(DoubleArray(m_nDataArray, (int)(sizeof(m_nDataArray) / sizeof(m_nDataArray[0]))), 0xff0000);
+	c->addLineLayer(DoubleArray(m_nDataArray, (int)(sizeof(m_nDataArray) / sizeof(m_nDataArray[0]))),
         0x80ff0000, "", 3);
+	
 
-	m_ChartViewer.setChart(c);  //m_chartView에 Chart를 보여주기 위한 코드
+	//m_ChartViewer.setChart(c);  //m_chartView에 Chart를 보여주기 위한 코드
+	viewer->setChart(c);
 
-	ZeroMemory(m_nDataArray,sizeof(m_nDataArray));
+	//ZeroMemory(m_nDataArray,sizeof(m_nDataArray));
 	delete c;
-	c = NULL;
 
 	SetDlgItemInt(IDC_EDIT_COUNT,m_nTotalScan);
 	SetDlgItemInt(IDC_EDIT_NG,m_nIMON_USB_Recon_Cnt);
@@ -1259,7 +1272,7 @@ void CThicknessMeas_ProtoDlg::DrawChartFormat7(CChartViewer *viewer)
 
     // Configure the x-axis to auto-scale with at least 75 pixels between major tick and 
     // 15  pixels between minor ticks. This shows more minor grid lines on the chart.
-    c->xAxis()->setTickDensity(75, 15);
+    //c->xAxis()->setTickDensity(75, 15);
 
     // Set the axes width to 2 pixels
     c->xAxis()->setWidth(2);
@@ -1269,14 +1282,14 @@ void CThicknessMeas_ProtoDlg::DrawChartFormat7(CChartViewer *viewer)
 	 c->xAxis()->setDateScale(0,512);
 	 layer->setXData(DoubleArray(m_nXDataArray, (int)(sizeof(m_nXDataArray) / sizeof(m_nXDataArray[0]))));
 
-	 char buffer[1024];
-     sprintf(buffer, "Y: <*bgColor=FFCCCC*> %.2f ", m_nYDataArray[512 - 1]);
-	 layer->addDataSet(DoubleArray(m_nYDataArray, (int)(sizeof(m_nYDataArray) / sizeof(m_nYDataArray[0]))), 0xff0000, buffer);
-	
-	 
-	c->addAreaLayer(DoubleArray(m_nDataArray, (int)(sizeof(m_nDataArray) / sizeof(m_nDataArray[0]))),
-        0x80ff0000, "", 3);
-   
+	 /*char buffer[1024];
+     sprintf(buffer, "Y: <*bgColor=FFCCCC*> %.2f ", m_nYDataArray[512 - 1]);*/
+	 //c->yAxis()->setDateScale(0,30000);
+	 layer->addDataSet(DoubleArray(m_nYDataArray, (int)(sizeof(m_nYDataArray) / sizeof(m_nYDataArray[0]))), 0xff0000);
+	/*c->addAreaLayer(DoubleArray(m_nDataArray, (int)(sizeof(m_nDataArray) / sizeof(m_nDataArray[0]))),
+        0x80ff0000, "", 3);*/
+	c->addLineLayer(DoubleArray(m_nYDataArray, (int)(sizeof(m_nYDataArray) / sizeof(m_nYDataArray[0]))),
+		0x80ff0000, "", 3);
 
     // Set the chart image to the WinChartViewer
     viewer->setChart(c);
@@ -1286,10 +1299,12 @@ void CThicknessMeas_ProtoDlg::DrawChartFormat7(CChartViewer *viewer)
 
 void CThicknessMeas_ProtoDlg::DrawFFTChart(CChartViewer *viewer)
 {
+	 // Create an XYChart object 600 x 270 pixels in size, with light grey (f4f4f4) 
+    // background, black (000000) border, 1 pixel raised effect, and with a rounded frame.
     XYChart *c = new XYChart(700, 400, 0xf4f4f4, 0x000000, 1);
     c->setRoundedFrame(m_extBgColor);
     
-    // Set the plotarea at (55, 62) and of size 520 x 175 pixels. Use white (ffffff) 
+    // Set the plotarea at (55, 0) and of size 600 x 350 pixels. Use white (ffffff) 
     // background. Enable both horizontal and vertical grids by setting their colors to 
     // grey (cccccc). Set clipping mode to clip the data lines to the plot area.
     c->setPlotArea(55, 0, 600, 350, 0xffffff, -1, -1, 0xcccccc, 0xcccccc);
@@ -1315,26 +1330,35 @@ void CThicknessMeas_ProtoDlg::DrawFFTChart(CChartViewer *viewer)
     b->setBackground(Chart::Transparent, Chart::Transparent);
     b->setWidth(520);
 
-    // Configure the y-axis with a 10pts Arial Bold axis title
 	c->xAxis()->setTitle("Pixel no","arialbd.ttf", 10);
+	// Configure the y-axis with a 10pts Arial Bold axis title
     c->yAxis()->setTitle("Amplitude [counts]", "arialbd.ttf", 10);
 
     // Configure the x-axis to auto-scale with at least 75 pixels between major tick and 
     // 15  pixels between minor ticks. This shows more minor grid lines on the chart.
-    c->xAxis()->setTickDensity(75, 15);
+ //c->xAxis()->setTickDensity(75, 15);
 
     // Set the axes width to 2 pixels
     c->xAxis()->setWidth(2);
     c->yAxis()->setWidth(2);
 
-	c->addAreaLayer(DoubleArray(m_nDataArray, (int)(sizeof(m_nDataArray) / sizeof(m_nDataArray[0]))),
+	/*c->addAreaLayer(DoubleArray(m_nDataArray, (int)(sizeof(m_nDataArray) / sizeof(m_nDataArray[0]))),
+        0x80ff0000, "", 3);*/
+	LineLayer *layer = c->addLineLayer();
+	c->xAxis()->setDateScale(0,512);
+	layer->setXData(DoubleArray(m_nXDataArray, (int)(sizeof(m_nXDataArray) / sizeof(m_nXDataArray[0]))));
+
+	//c->yAxis()->setDateScale(0,20000);
+	c->addLineLayer(DoubleArray(m_nDataArray, (int)(sizeof(m_nDataArray) / sizeof(m_nDataArray[0]))),
         0x80ff0000, "", 3);
+	//c->xAxis()->setDateScale(0,512);
 
-	m_ChartViewer.setChart(c);  //m_chartView에 Chart를 보여주기 위한 코드
+	//m_ChartViewer.setChart(c);  //m_chartView에 Chart를 보여주기 위한 코드
+	viewer->setChart(c);
 
-	ZeroMemory(m_nDataArray,sizeof(m_nDataArray));
+	//ZeroMemory(m_nDataArray,sizeof(m_nDataArray));
 	delete c;
-	c = NULL;
+	
 }
 
 // General utilities
@@ -1361,6 +1385,11 @@ void CThicknessMeas_ProtoDlg::OnBnClickedBtFft()
 {
 	GetDlgItem(IDC_EDIT_EXP_TIME)->EnableWindow(FALSE);
 	GetDlgItem(IDC_EDIT_REP_CYC)->EnableWindow(FALSE);
+
+	for(int i=0; i<512; i++)
+	{
+		m_nXDataArray[i] = i+1;
+	}
 
 	CString strCmd = L"";
 	/*CString strCmd = L"ESC";
@@ -1413,6 +1442,8 @@ void CThicknessMeas_ProtoDlg::FFTtest()
 	ZeroMemory(m_nDataArray,sizeof(m_nDataArray));
 	ZeroMemory(m_nDataArrTemp,sizeof(m_nDataArrTemp));
 
+	//double dTemp = MeasureTemperature();
+
 	ftStatus = FT_Read(m_ftHandle,RxBuffer,RxBytes,&BytesReceived); 
 	WORD data = 0;
 	if (ftStatus == FT_OK) 
@@ -1420,10 +1451,11 @@ void CThicknessMeas_ProtoDlg::FFTtest()
 		CString strTemp;
 		CString strData=L"";
 
+		int i;
+
 		//if (BytesReceived == RxBytes) 
 		if (BytesReceived > 0) 
 		{ 
-			int i;
 			for(i=0; i<512; i++)
 			{
 				double d = MAKE_WORD(RxBuffer[2+(i-1)*2], RxBuffer [3+(i-1)*2]);
@@ -1716,7 +1748,7 @@ double CThicknessMeas_ProtoDlg::MeasureTemperature()
 	CString str = WriteFwCommand(L"*MEASure:TEMPErature");
 	//AfxMessageBox(str);
 	int nIdx = str.Find(L":");
-	AfxMessageBox(str.Mid(nIdx+1));
+	//AfxMessageBox(str.Mid(nIdx+1));
 	CString strTemperature = str.Mid(nIdx+1);
 	dTemperature = _wtof(strTemperature);
 	return dTemperature;

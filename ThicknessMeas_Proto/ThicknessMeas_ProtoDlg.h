@@ -70,6 +70,7 @@ protected:
 	double    WavLenCalib(int pix); // Wavelength Calibration - 파장교정
 	//double    WavLenFit(double pix); //wavelength fit (?)
 	double	  FixTemperDrift(double dLamda, double dTemperature); // Compensation for Temperature Drift - 온도편차보정
+	double    m_dTemperature;
 	double	  MeasureTemperature();
 
 	//chart
