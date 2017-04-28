@@ -52,6 +52,9 @@ protected:
 	ViStatus	Get_CLD1015_Device_ID(ViSession handle);
 	
 	//I-MON USB - Spectrometer
+	double A,B1,B2,B3,B4,B5; //Calibration coefficients 
+	double a,a0,b,b0; //Temperature coefficients
+
 	void MBCS2Unicode(LPCSTR lpData,LPWSTR ReturnData);
 	void Unicode2MBCS(LPWSTR lpData,LPSTR lpRtd);
 
@@ -68,8 +71,7 @@ protected:
 	void	  SetWavRange(int wbeg, int wend, int wstep);
 	void	  FFTtest();
 	double    WavLenCalib(double pix); // Wavelength Calibration - 파장교정
-	//double    WavLenFit(double pix); //wavelength fit (?)
-	double	  FixTemperDrift(double dLamda, double dTemperature); // Compensation for Temperature Drift - 온도편차보정
+	double	  FixTemperDrift(double dWavLen, double dTemperature); // Compensation for Temperature Drift - 온도편차보정
 	double    m_dTemperature;
 	double	  MeasureTemperature();
 

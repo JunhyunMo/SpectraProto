@@ -71,6 +71,19 @@ CThicknessMeas_ProtoDlg::CThicknessMeas_ProtoDlg(CWnd* pParent /*=NULL*/)
 	m_strChartTitle = L"";
 	m_strCmd = L"";
 	m_dTemperature = 0.0;
+
+	//Calibration coefficients @ Certificate of Conformance
+	A  =  1.595820E+03; //Intercept,A 
+	B1 = -1.380533E-01; //First coefficient, 
+	B2 = -6.506613E-05;//Second coefficient, 
+	B3 =  1.141395E-08;//Third coefficient, B3
+	B4 = -3.256433E-11;//Fourth coefficient, B4
+	B5 =  2.334266E-14;//Fifth coefficient, B5
+	//Temperature coefficients @ Certificate of Conformance
+	a  =  4.049996E-06;
+	a0 = -1.201354E-04;
+	b  = -5.979490E-03;
+	b0 =  1.781207E-01;
 }
 
 void CThicknessMeas_ProtoDlg::DoDataExchange(CDataExchange* pDX)
@@ -993,7 +1006,6 @@ CString CThicknessMeas_ProtoDlg::WriteFwCommand2(CString strCmd)
 	
 	if (ftStatus == FT_OK) 
 	{ 
-		//if (BytesReceived == RxBytes) 
 		if (BytesReceived > 0) 
 		{ 
 			// FT_Read OK 
@@ -1173,18 +1185,12 @@ void CThicknessMeas_ProtoDlg::DrawChartFormat4(CChartViewer *viewer)
 	c->xAxis()->setDateScale(0,512);
     layer->setXData(DoubleArray(m_nXDataArray, (int)(sizeof(m_nXDataArray) / sizeof(m_nXDataArray[0]))));
 
-	/*c->addAreaLayer(DoubleArray(m_nDataArray, (int)(sizeof(m_nDataArray) / sizeof(m_nDataArray[0]))),
-        0x80ff0000, "", 3);*/
-	//c->yAxis()->setDateScale(0,30000);
 	layer->addDataSet(DoubleArray(m_nDataArray, (int)(sizeof(m_nDataArray) / sizeof(m_nDataArray[0]))), 0xff0000);
 	c->addLineLayer(DoubleArray(m_nDataArray, (int)(sizeof(m_nDataArray) / sizeof(m_nDataArray[0]))),
         0x80ff0000, "", 3);
 	
-
-	//m_ChartViewer.setChart(c);  //m_chartView에 Chart를 보여주기 위한 코드
 	viewer->setChart(c);
 
-	//ZeroMemory(m_nDataArray,sizeof(m_nDataArray));
 	delete c;
 
 	SetDlgItemInt(IDC_EDIT_COUNT,m_nTotalScan);
@@ -1193,7 +1199,6 @@ void CThicknessMeas_ProtoDlg::DrawChartFormat4(CChartViewer *viewer)
 //format7 (ASCII output with wavelength, separated by <CR>)
 void CThicknessMeas_ProtoDlg::DrawChartFormat7(CChartViewer *viewer)
 {
-    //for test
 	if(m_strCmd.Left(8) == L"*MEASure")
 	{
 		int	nCnt = 0;
@@ -1212,10 +1217,6 @@ void CThicknessMeas_ProtoDlg::DrawChartFormat7(CChartViewer *viewer)
 		}
 		while(nIdx2 != -1);
 
-		/*CString str;
-		str.Format(L"\\r %d", nCnt);
-		AfxMessageBox(str);*/
-
 		nCnt = 0;
 		nIdx1 = 0;
 		nIdx2 = 0;
@@ -1225,15 +1226,12 @@ void CThicknessMeas_ProtoDlg::DrawChartFormat7(CChartViewer *viewer)
 		   nIdx2 = m_strData.Find(L"\r",nIdx1);
 		   if(nIdx2>0)
 		   {
-			   //m_nXDataArray[nCnt] = _wtof(m_strData.Mid(nIdx1,(nIdx2-nIdx1)));
 			   m_nXDataArray[nCnt] = nCnt; //pixel no - 512
 			   nIdx1 = nIdx2+1;
 			   nCnt++;
 		   }
 		}
 		while(nIdx2 != -1);
-		/*str.Format(L"\\t %d", nCnt);
-		AfxMessageBox(str);*/
 	}
 	//
 //////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1246,11 +1244,6 @@ void CThicknessMeas_ProtoDlg::DrawChartFormat7(CChartViewer *viewer)
     c->setPlotArea(55, 0, 600, 350, 0xffffff, -1, -1, 0xcccccc, 0xcccccc);
     c->setClipping();
 
-    // Add a title to the chart using 15 pts Times New Roman Bold Italic font, with a light
-    // grey (dddddd) background, black (000000) border, and a glass like raised effect.
-    /*c->addTitle("Field Intensity at Observation Satellite", "timesbi.ttf", 15
-        )->setBackground(0xdddddd, 0x000000, Chart::glassEffect());*/
-    
 	char chTitle[256];
 	memset(chTitle,0x00,sizeof(chTitle));
 	Unicode2MBCS(m_strChartTitle.GetBuffer(0),chTitle);
@@ -1270,24 +1263,16 @@ void CThicknessMeas_ProtoDlg::DrawChartFormat7(CChartViewer *viewer)
 	c->xAxis()->setTitle("Pixel","arialbd.ttf", 10);
     c->yAxis()->setTitle("?", "arialbd.ttf", 10);
 
-    // Configure the x-axis to auto-scale with at least 75 pixels between major tick and 
-    // 15  pixels between minor ticks. This shows more minor grid lines on the chart.
-    //c->xAxis()->setTickDensity(75, 15);
-
     // Set the axes width to 2 pixels
     c->xAxis()->setWidth(2);
     c->yAxis()->setWidth(2);
 
-	 LineLayer *layer = c->addLineLayer();
-	 c->xAxis()->setDateScale(0,512);
-	 layer->setXData(DoubleArray(m_nXDataArray, (int)(sizeof(m_nXDataArray) / sizeof(m_nXDataArray[0]))));
+	LineLayer *layer = c->addLineLayer();
+	c->xAxis()->setDateScale(0,512);
+	layer->setXData(DoubleArray(m_nXDataArray, (int)(sizeof(m_nXDataArray) / sizeof(m_nXDataArray[0]))));
 
-	 /*char buffer[1024];
-     sprintf(buffer, "Y: <*bgColor=FFCCCC*> %.2f ", m_nYDataArray[512 - 1]);*/
-	 //c->yAxis()->setDateScale(0,30000);
-	 layer->addDataSet(DoubleArray(m_nYDataArray, (int)(sizeof(m_nYDataArray) / sizeof(m_nYDataArray[0]))), 0xff0000);
-	/*c->addAreaLayer(DoubleArray(m_nDataArray, (int)(sizeof(m_nDataArray) / sizeof(m_nDataArray[0]))),
-        0x80ff0000, "", 3);*/
+	layer->addDataSet(DoubleArray(m_nYDataArray, (int)(sizeof(m_nYDataArray) / sizeof(m_nYDataArray[0]))), 0xff0000);
+	
 	c->addLineLayer(DoubleArray(m_nYDataArray, (int)(sizeof(m_nYDataArray) / sizeof(m_nYDataArray[0]))),
 		0x80ff0000, "", 3);
 
@@ -1299,7 +1284,7 @@ void CThicknessMeas_ProtoDlg::DrawChartFormat7(CChartViewer *viewer)
 
 void CThicknessMeas_ProtoDlg::DrawFFTChart(CChartViewer *viewer)
 {
-	 // Create an XYChart object 600 x 270 pixels in size, with light grey (f4f4f4) 
+	 // Create an XYChart object 700 x 400 pixels in size, with light grey (f4f4f4) 
     // background, black (000000) border, 1 pixel raised effect, and with a rounded frame.
     XYChart *c = new XYChart(700, 400, 0xf4f4f4, 0x000000, 1);
     c->setRoundedFrame(m_extBgColor);
@@ -1310,11 +1295,6 @@ void CThicknessMeas_ProtoDlg::DrawFFTChart(CChartViewer *viewer)
     c->setPlotArea(55, 0, 600, 350, 0xffffff, -1, -1, 0xcccccc, 0xcccccc);
     c->setClipping();
 
-    // Add a title to the chart using 15 pts Times New Roman Bold Italic font, with a light
-    // grey (dddddd) background, black (000000) border, and a glass like raised effect.
-    /*c->addTitle("Field Intensity at Observation Satellite", "timesbi.ttf", 15
-        )->setBackground(0xdddddd, 0x000000, Chart::glassEffect());*/
-    
 	char chTitle[256];
 	memset(chTitle,0x00,sizeof(chTitle));
 	Unicode2MBCS(m_strChartTitle.GetBuffer(0),chTitle);
@@ -1330,13 +1310,9 @@ void CThicknessMeas_ProtoDlg::DrawFFTChart(CChartViewer *viewer)
     b->setBackground(Chart::Transparent, Chart::Transparent);
     b->setWidth(520);
 
+	// Configure the x-axis,y-axis with a 10pts Arial Bold axis title
 	c->xAxis()->setTitle("Pixel no","arialbd.ttf", 10);
-	// Configure the y-axis with a 10pts Arial Bold axis title
     c->yAxis()->setTitle("Amplitude [counts]", "arialbd.ttf", 10);
-
-    // Configure the x-axis to auto-scale with at least 75 pixels between major tick and 
-    // 15  pixels between minor ticks. This shows more minor grid lines on the chart.
- //c->xAxis()->setTickDensity(75, 15);
 
     // Set the axes width to 2 pixels
     c->xAxis()->setWidth(2);
@@ -1353,19 +1329,13 @@ void CThicknessMeas_ProtoDlg::DrawFFTChart(CChartViewer *viewer)
         0x80ff0000, "", 3);
 	//c->xAxis()->setDateScale(0,512);
 
-	//m_ChartViewer.setChart(c);  //m_chartView에 Chart를 보여주기 위한 코드
 	viewer->setChart(c);
 
-	//ZeroMemory(m_nDataArray,sizeof(m_nDataArray));
 	delete c;
-	
 }
 
 // General utilities
-
-//
 // Get the default background color
-//
 int CThicknessMeas_ProtoDlg::getDefaultBgColor()
 {
     LOGBRUSH LogBrush; 
@@ -1684,31 +1654,14 @@ void CThicknessMeas_ProtoDlg::OnBnClickedBtSetWavRange()
 
 double CThicknessMeas_ProtoDlg::WavLenCalib(double pix) //A + B1*pix + B2*pix^2 + B3*pix^3 + B4*pix^4 + B5*pix^5, pix = 0..511
 {
-	//[Certificate of Conformance]
-	double A  =  1.595820E+03; //Intercept,A 
-	double B1 = -1.380533E-01; //First coefficient, 
-	double B2 = -6.506613E-05;//Second coefficient, 
-	double B3 =  1.141395E-08;//Third coefficient, B3
-	double B4 = -3.256433E-11;//Fourth coefficient, B4
-	double B5 =  2.334266E-14;//Fifth coefficient, B5
-
-	//double A  =  1595.820000; //Intercept,A 
-	//double B1 = -1.38053300E-01; //First coefficient, 
-	//double B2 = -6.506613000E-05;//Second coefficient, 
-	//double B3 =  1.141395000E-08;//Third coefficient, B3
-	//double B4 = -3.2564330000E-11;//Fourth coefficient, B4
-	//double B5 =  2.3342660000E-14;//Fifth coefficient, B5
-
-	//In I-MON LabView Evaluation App
-	/*double A =   1.595820E+3; 
-	double B1 = -1.380533E-1;
-	double B2 = -6.506613E-5;
-	double B3 =  1.141395E-8;
-	double B4 = -3.256433E-11;
-	double B5 = 2.334266E-14;*/
+	double dPxl1 = pix;
+	double dPxl2 = dPxl1*pix;
+	double dPxl3 = dPxl2*pix;
+	double dPxl4 = dPxl3*pix;
+	double dPxl5 = dPxl4*pix;
 
 	double dWavLen = 0.0;
-	dWavLen = A + B1*pix + B2*(pix*pix) + B3*(pix*pix*pix) + B4*(pix*pix*pix*pix) + B5*(pix*pix*pix*pix*pix);
+	dWavLen = A + B1*dPxl1 + B2*dPxl2 + B3*dPxl3 + B4*dPxl4 + B5*dPxl5;
 	
 	return dWavLen;
 }
@@ -1726,25 +1679,12 @@ double CThicknessMeas_ProtoDlg::WavLenCalib(double pix) //A + B1*pix + B2*pix^2 
 //	return dWavLen;
 //}
 
-double CThicknessMeas_ProtoDlg::FixTemperDrift(double dLamda, double dTemperature)
+double CThicknessMeas_ProtoDlg::FixTemperDrift(double dWavLen, double dTemperature)
 {
 	double calibrValue = 0.0; 
-	
-	//[Certificate of Conformance]
-	double a  =  4.049996E-06;
-	double a0 = -1.201354E-04;
-	double b  = -5.979490E-03;
-	double b0 =  1.781207E-01;
-
-	//In I-MON LabView Evaluation App
-	/*double a  =  4.049996E-6;
-	double a0 = -1.201354E-4;
-	double b  = -5.979490E-3;
-	double b0 =  1.781207E-1;*/
-
 
 	//correction
-	calibrValue = (dLamda - (b*dTemperature) - b0)/(1 + (a*dTemperature) + a0);
+	calibrValue = (dWavLen - (b*dTemperature) - b0)/(1 + (a*dTemperature) + a0);
 
 	return calibrValue;
 }
@@ -1753,23 +1693,9 @@ double CThicknessMeas_ProtoDlg::MeasureTemperature()
 {
 	double dTemperature = 0.0;
 	CString str = WriteFwCommand(L"*MEASure:TEMPErature");
-	//AfxMessageBox(str);
 	int nIdx = str.Find(L":");
-	//AfxMessageBox(str.Mid(nIdx+1));
 	CString strTemperature = str.Mid(nIdx+1);
 	dTemperature = _wtof(strTemperature);
 	return dTemperature;
 }
-//Certificate of Conformance
-//Calibration coefficients - A + B1*pix + B2*pix^2 + B3*pix^3 + B4*pix^4 + B5*pix^5, pix = 0..511
-//double A = 1.595820E+03; //Intercept,A
-//double B1 = -1.380533E-01; //First coefficient, B1
-//double B2 = -6.506613E-05;//Second coefficient, B2
-//double B3 = 1.141395E-08;//Third coefficient, B3
-//double B4 = -3.256433E-11;//Fourth coefficient, B4
-//double B5 = 2.334266E-14;//Fifth coefficient, B5
-////Temperature coefficients -  (dLamda - b*dTemperature - b0) / (1 + a*dTemperature + a0);
-//double a  =  4.049996E-06;
-//double a0 = -1.201354E-04;
-//double b  = -5.979490E-03;
-//double b0 =  1.781207E-01;
+
