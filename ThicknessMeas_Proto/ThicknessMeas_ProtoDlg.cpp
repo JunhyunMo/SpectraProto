@@ -59,18 +59,21 @@ CThicknessMeas_ProtoDlg::CThicknessMeas_ProtoDlg(CWnd* pParent /*=NULL*/)
 {
 	m_hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
 
-
 	m_InstrHdl_PM100D = VI_NULL; 
 	m_InstrHdl_CLD1015 = VI_NULL;
 	m_ftHandle = NULL;
 	m_nTotalScan = 0;
 	m_nIMON_USB_Recon_Cnt = 0;
 	m_nFFT_DoubleFault = 0;
-//	m_nIMON_BitErr = 0;
+	m_nScanElapse = 0;
 
 	m_strChartTitle = L"";
 	m_strCmd = L"";
 	m_dTemperature = 0.0;
+	m_dMinWav = 0.0;
+	m_dMaxWav = 0.0;
+
+	m_bIsXAxisWav = TRUE;
 
 	//Calibration coefficients @ Certificate of Conformance
 	A  =  1.595820E+03; //Intercept,A 
@@ -185,6 +188,8 @@ BOOL CThicknessMeas_ProtoDlg::OnInitDialog()
 	SetDlgItemInt(IDC_EDIT_FFT_COUNT,100);
 	SetDlgItemInt(IDC_EDIT_REP_CYC,100);
 
+	((CComboBox*)GetDlgItem(IDC_COMBO_XAXIS))->SetCurSel(0);
+
 	SetDlgItemText(IDC_EDIT_GET_CMD,L"*PARAmeter:FFTPARAmeter?");
 
 	return TRUE;  // 포커스를 컨트롤에 설정하지 않으면 TRUE를 반환합니다.
@@ -273,6 +278,10 @@ void CThicknessMeas_ProtoDlg::OnTimer(UINT_PTR nIDEvent)
 			m_ChartViewer.updateViewPort(true, false);      
 			break;
 		case FFT:
+			if(m_ftHandle == NULL)
+			{
+				return;
+			}
 			FFTtest();
 			break;
 		default:
@@ -340,7 +349,7 @@ ViStatus CThicknessMeas_ProtoDlg::FindPM100D(ViString findPattern, ViChar **reso
 }
 
 /*===========================================================================
- GET ID
+GET ID
 ===========================================================================*/
 ViStatus CThicknessMeas_ProtoDlg::Get_PM100D_Device_ID(ViSession handle)
 {  
@@ -758,8 +767,10 @@ void CThicknessMeas_ProtoDlg::OnBnClickedBtOpen()
 		DisplayLog(L"Set read timeout of 1000ms, write timeout of 1000ms");
 	}
 
-	CString strSensorTemper = WriteFwCommand(L"*MEASure:TEMPErature");
-	
+	m_dTemperature = MeasureTemperature();
+
+	CString strSensorTemper;
+	strSensorTemper.Format(L"Temperature: %.1f",m_dTemperature);
 	SetDlgItemText(IDC_EDIT_SENSOR_TEMPERATURE, strSensorTemper);
 
 	ftStatus = FT_SetLatencyTimer(m_ftHandle, LatencyTimer);
@@ -774,9 +785,6 @@ void CThicknessMeas_ProtoDlg::OnBnClickedBtOpen()
 	CString str;
 	str.Format(L"%s / %s", strDeviceID, strFWver);
 	SetDlgItemText(IDC_ST_IMON_INFO,str);
-
-	GetMeasConfig();
-
 }
 
 void CThicknessMeas_ProtoDlg::OnBnClickedBtClose()
@@ -784,8 +792,7 @@ void CThicknessMeas_ProtoDlg::OnBnClickedBtClose()
 	FT_STATUS ftStatus = FT_Close (m_ftHandle);
 	if(ftStatus == FT_OK)
 	{
-		/*KillTimer(DUMMY_MEASURE);
-		DisplayLog(L"-------------------------I-MON Close-------------------------");*/
+		DisplayLog(L"-------------------------I-MON Close-------------------------");
 		GetDlgItem(IDC_BT_OPEN)->EnableWindow(TRUE);
 		m_ftHandle = NULL;
 		SetDlgItemText(IDC_ST_IMON_INFO,L"--");
@@ -828,9 +835,15 @@ CString CThicknessMeas_ProtoDlg::DummyMeasure()
 
 void CThicknessMeas_ProtoDlg::OnBnClickedBtQuit()
 {
-	KillTimer(DUMMY_MEASURE);
+	//KillTimer(DUMMY_MEASURE);
 	/*KillTimer(DataRateTimer);
 	KillTimer(ChartUpdateTimer);*/
+
+	FT_STATUS ftStatus = FT_Purge(m_ftHandle, FT_PURGE_RX | FT_PURGE_TX);
+	if (ftStatus == FT_OK) 
+	{
+		DisplayLog(L"Purge both Rx and Tx buffers");
+	}
 }
 
 void CThicknessMeas_ProtoDlg::OnBnClickedBtWrCmd()
@@ -847,18 +860,12 @@ void CThicknessMeas_ProtoDlg::OnBnClickedBtWrCmd()
 	if(strCmd.GetLength() > 0)
 	{	
 		m_strData = WriteFwCommand(strCmd);		
-AfxMessageBox(m_strData);
-//for test MJH
-//GetLog()->Debug(m_strData.GetBuffer());
 	}
 	else
 	{
 		MessageBox(L"Input Command First.", L"Warning", MB_OK | MB_ICONWARNING);
 		return;
 	}
-
-	/*CString strErr = WriteFwCommand(L"*STATus:ERRor?");
-	SetDlgItemText(IDC_EDIT_ERR,strErr);*/
 }
 
 void CThicknessMeas_ProtoDlg::OnBnClickedBtDrawChart()
@@ -1026,10 +1033,10 @@ CString CThicknessMeas_ProtoDlg::WriteFwCommand2(CString strCmd)
 	return strRet;
 }
 
-void  CThicknessMeas_ProtoDlg::GetMeasConfig()
-{
-	GetWavRange(); //Get wavelength range - *CONFigure:WRANge wbeg wend wstp <CR>
-}
+//void  CThicknessMeas_ProtoDlg::GetMeasConfig()
+//{
+//	GetWavRange(); //Get wavelength range - *CONFigure:WRANge wbeg wend wstp <CR>
+//}
 
 void CThicknessMeas_ProtoDlg::GetWavRange()
 {
@@ -1052,25 +1059,25 @@ void CThicknessMeas_ProtoDlg::GetWavRange()
 	SetDlgItemText(IDC_ST_WAV_RANGE,strRange);
 }
 
-void CThicknessMeas_ProtoDlg::SetWavRange(int wbeg, int wend, int wstep)
-{
-	CString strCMD, str1,str2,str3;
-	strCMD.Format(L"*CONFigure:BEGin %d", wbeg);
-	str1 = WriteFwCommand(strCMD);
-	strCMD.Format(L"*CONFigure:END %d", wend);
-	str2 = WriteFwCommand(strCMD);
-	strCMD.Format(L"*CONFigure:WSTP %d", wstep);
-	str3 = WriteFwCommand(strCMD);
+//void CThicknessMeas_ProtoDlg::SetWavRange(int wbeg, int wend, int wstep)
+//{
+	//CString strCMD, str1,str2,str3;
+	//strCMD.Format(L"*CONFigure:BEGin %d", wbeg);
+	//str1 = WriteFwCommand(strCMD);
+	//strCMD.Format(L"*CONFigure:END %d", wend);
+	//str2 = WriteFwCommand(strCMD);
+	//strCMD.Format(L"*CONFigure:WSTP %d", wstep);
+	//str3 = WriteFwCommand(strCMD);
 
-	if(str1.Left(1) == 0x06 && str2.Left(1) == 0x06 && str3.Left(1) == 0x06) //ACK
-	{
-		m_strMeasure = L"Wavelength range is configured.";
-	}
-	else
-		m_strMeasure = L"Wavelength range configuration failed.";
+	//if(str1.Left(1) == 0x06 && str2.Left(1) == 0x06 && str3.Left(1) == 0x06) //ACK
+	//{
+	//	m_strMeasure = L"Wavelength range is configured.";
+	//}
+	//else
+	//	m_strMeasure = L"Wavelength range configuration failed.";
 
-	UpdateData(FALSE);
-}
+	//UpdateData(FALSE);
+//}
 
 
 
@@ -1311,30 +1318,34 @@ void CThicknessMeas_ProtoDlg::DrawFFTChart(CChartViewer *viewer)
     b->setWidth(520);
 
 	// Configure the x-axis,y-axis with a 10pts Arial Bold axis title
-	c->xAxis()->setTitle("Pixel no","arialbd.ttf", 10);
+	c->xAxis()->setTitle("nm","arialbd.ttf", 10);
     c->yAxis()->setTitle("Amplitude [counts]", "arialbd.ttf", 10);
 
     // Set the axes width to 2 pixels
     c->xAxis()->setWidth(2);
     c->yAxis()->setWidth(2);
 
-	/*c->addAreaLayer(DoubleArray(m_nDataArray, (int)(sizeof(m_nDataArray) / sizeof(m_nDataArray[0]))),
-        0x80ff0000, "", 3);*/
 	LineLayer *layer = c->addLineLayer();
-	c->xAxis()->setDateScale(0,512);
+
+	if(m_bIsXAxisWav == TRUE )
+	{
+		c->xAxis()->setDateScale(m_dMinWav,m_dMaxWav);
+	}
+	else
+	{
+		c->xAxis()->setDateScale(0,512);
+	}
 	layer->setXData(DoubleArray(m_nXDataArray, (int)(sizeof(m_nXDataArray) / sizeof(m_nXDataArray[0]))));
 
-	//c->yAxis()->setDateScale(0,20000);
+	layer->addDataSet(DoubleArray(m_nDataArray, (int)(sizeof(m_nDataArray) / sizeof(m_nDataArray[0]))), 0xff0000);
 	c->addLineLayer(DoubleArray(m_nDataArray, (int)(sizeof(m_nDataArray) / sizeof(m_nDataArray[0]))),
         0x80ff0000, "", 3);
-	//c->xAxis()->setDateScale(0,512);
 
 	viewer->setChart(c);
 
 	delete c;
 }
 
-// General utilities
 // Get the default background color
 int CThicknessMeas_ProtoDlg::getDefaultBgColor()
 {
@@ -1356,26 +1367,41 @@ void CThicknessMeas_ProtoDlg::OnBnClickedBtFft()
 	GetDlgItem(IDC_EDIT_EXP_TIME)->EnableWindow(FALSE);
 	GetDlgItem(IDC_EDIT_REP_CYC)->EnableWindow(FALSE);
 
-	for(int i=0; i<512; i++)
+	int nSel = ((CComboBox*)GetDlgItem(IDC_COMBO_XAXIS))->GetCurSel();
+
+	if(nSel == 0)
 	{
-		m_nXDataArray[i] = i+1;
+		FillXaxisData(TRUE); //Wavelength
+		m_bIsXAxisWav = TRUE;
+	}
+	else
+	{
+		FillXaxisData(FALSE); //Pixel no
+		m_bIsXAxisWav = FALSE;
+	}
+
+	int nState = ((CButton*)GetDlgItem(IDC_CHK_TEMPER_FIX))->GetCheck();
+
+	if(nState == BST_CHECKED)
+	{
+		m_bTemperFix = TRUE;
+	}
+	else if(nState == BST_UNCHECKED)
+	{
+		m_bTemperFix = FALSE;
 	}
 
 	CString strCmd = L"";
-	/*CString strCmd = L"ESC";
-	WriteFwCommand(strCmd);*/
+	
 	int nFreq,nTint,nCount;
 	nFreq = GetDlgItemInt(IDC_EDIT_FREQUENCY);
 	nTint = GetDlgItemInt(IDC_EDIT_EXP_TIME);
 	nCount = GetDlgItemInt(IDC_EDIT_FFT_COUNT);
-	//strCmd = L"*PARAmeter:FFTPARAmeter 3000 3 1000";
 	strCmd.Format(L"*PARAmeter:FFTPARAmeter %d %d %d",nFreq,nTint,nCount);
 	WriteFwCommand(strCmd);
 
-	int nElapse = 0;
-	nElapse = GetDlgItemInt(IDC_EDIT_REP_CYC);
-	SetTimer(FFT,nElapse,NULL);
-	//FFTtest();
+	m_nScanElapse = GetDlgItemInt(IDC_EDIT_REP_CYC);
+	SetTimer(FFT,m_nScanElapse,NULL);
 }
 
 void CThicknessMeas_ProtoDlg::OnBnClickedBtFftStop()
@@ -1389,11 +1415,58 @@ void CThicknessMeas_ProtoDlg::OnBnClickedBtFftStop()
 	WriteFwCommand(strCmd);
 }
 
+void CThicknessMeas_ProtoDlg::FillXaxisData(BOOL bWavelengh)
+{
+	int i;
+	ZeroMemory(m_nXDataArray,sizeof(m_nXDataArray));
+	if(bWavelengh == TRUE) //x-Axis Wavelength
+	{   
+		double nTempArray[512];
+		ZeroMemory(nTempArray,sizeof(nTempArray));
+		double dWavLen = 0.0;
+		for(i = 0; i < 512; i++)
+		{
+			
+			dWavLen = WavLenCalib((double)i);
+			nTempArray[i] = dWavLen;
+
+			if(i==0)
+			{
+				m_dMaxWav = dWavLen;
+			}
+			else if(i==511)
+			{
+				m_dMinWav = dWavLen;
+			}
+		}
+
+		//inverse
+		for(i = 0; i < 512; i++)
+		{
+			m_nXDataArray[i] = nTempArray[511-i];
+		}
+
+	}
+	else //x-Axis Pixel no
+	{
+		for(i = 0; i < 512; i++)
+		{
+			m_nXDataArray[i] = i+1;
+		}
+	}
+}
+
 void CThicknessMeas_ProtoDlg::FFTtest()
 {
 	FT_STATUS ftStatus;
 
 	KillTimer(FFT);
+
+	double dCurTemp = 0.0;
+	if(m_bTemperFix == TRUE) //온도편차보정 적용조건
+	{
+		dCurTemp = MeasureTemperature();;
+	}
 
 	CString strCmd = L"*MEASure:FSTMEASure";
 
@@ -1411,8 +1484,6 @@ void CThicknessMeas_ProtoDlg::FFTtest()
 
 	ZeroMemory(m_nDataArray,sizeof(m_nDataArray));
 	ZeroMemory(m_nDataArrTemp,sizeof(m_nDataArrTemp));
-
-	//double dTemp = MeasureTemperature();
 
 	ftStatus = FT_Read(m_ftHandle,RxBuffer,RxBytes,&BytesReceived); 
 	WORD data = 0;
@@ -1447,9 +1518,8 @@ void CThicknessMeas_ProtoDlg::FFTtest()
 						SetDlgItemInt(IDC_EDIT_NG,m_nIMON_USB_Recon_Cnt);
 						m_nFFT_DoubleFault=0;
 					}
-					SetTimer(FFT,100,NULL);
-					/*m_nIMON_BitErr++;
-					SetDlgItemInt(IDC_EDIT_NG2,m_nIMON_BitErr);*/
+
+					SetTimer(FFT,m_nScanElapse,NULL); // 
 					return;
 				}
 			}
@@ -1471,13 +1541,11 @@ void CThicknessMeas_ProtoDlg::FFTtest()
 			{
 				m_nDataArray[i] = m_nDataArrTemp[nMin+i];
 			}
-			//memcpy_s(m_nDataArray,sizeof(m_nDataArray),m_nDataArrTemp+nMin,nContinue);
 
 			for(i=0;i<nMin;i++)
 			{
 				m_nDataArray[nContinue+i] = m_nDataArrTemp[i];
 			}
-			//memcpy_s(m_nDataArray+nContinue,sizeof(m_nDataArray),m_nDataArrTemp,nMin);
 		} 
 		else 
 		{ 
@@ -1491,6 +1559,12 @@ void CThicknessMeas_ProtoDlg::FFTtest()
 		m_nIMON_USB_Recon_Cnt++;
 		IMON_Reconnect();
 		SetDlgItemInt(IDC_EDIT_NG,m_nIMON_USB_Recon_Cnt);
+	}
+
+	if(m_bTemperFix == TRUE) // && 온도가 변했으면...  //TO-DO
+	{
+		//온도 보정
+		;
 	}
 
 	DrawFFTChart(&m_ChartViewer);
@@ -1507,121 +1581,63 @@ void CThicknessMeas_ProtoDlg::FFTtest()
 
 void CThicknessMeas_ProtoDlg::IMON_Reconnect()
 {
-	OnBnClickedBtClose();
-	OnBnClickedBtOpen();
+	FT_STATUS ftStatus = FT_Close (m_ftHandle);
+	if(ftStatus == FT_OK)
+	{
+		//DisplayLog(L"-------------------------I-MON Close-------------------------");
+		//GetDlgItem(IDC_BT_OPEN)->EnableWindow(TRUE);
+		m_ftHandle = NULL;
+		SetDlgItemText(IDC_ST_IMON_INFO,L"--");
+	}
+
+	//FT_STATUS ftStatus;
+	UCHAR LatencyTimer = 2; //ms
+
+	ftStatus = FT_Open(0,&m_ftHandle); 
+
+	if (ftStatus != FT_OK) 
+	{
+		//DisplayLog(L" FT_Open failed");
+		return;
+	}
+
+	//DisplayLog(L"-------------------------I-MON open-------------------------");
+	//GetDlgItem(IDC_BT_OPEN)->EnableWindow(FALSE);
+
+	ftStatus = FT_Purge(m_ftHandle, FT_PURGE_RX | FT_PURGE_TX);
+	/*if (ftStatus == FT_OK) 
+	{
+		DisplayLog(L"Purge both Rx and Tx buffers");
+	}*/
+
+	ftStatus = FT_SetTimeouts(m_ftHandle,1000,1000); // Set read timeout of 1000ms, write timeout of 1000ms
+	/*if (ftStatus == FT_OK) 
+	{
+		DisplayLog(L"Set read timeout of 1000ms, write timeout of 1000ms");
+	}*/
+
+	m_dTemperature = MeasureTemperature();
+
+	CString strSensorTemper;
+	strSensorTemper.Format(L"Temperature: %.1f",m_dTemperature);
+	SetDlgItemText(IDC_EDIT_SENSOR_TEMPERATURE, strSensorTemper);
+
+	ftStatus = FT_SetLatencyTimer(m_ftHandle, LatencyTimer);
+		
+	/*if (ftStatus == FT_OK) 
+	{
+		DisplayLog(L"LatencyTimer set to 2 milliseconds");
+	}*/
+
+	CString strDeviceID = WriteFwCommand(L"*IDN?");
+	CString strFWver = WriteFwCommand(L"*VERS?");
+	CString str;
+	str.Format(L"%s / %s", strDeviceID, strFWver);
+	SetDlgItemText(IDC_ST_IMON_INFO,str);
 }
+
 void CThicknessMeas_ProtoDlg::OnBnClickedBtSetWavRange()
 {
-	/*int nWbeg = GetDlgItemInt(IDC_EDIT_WBEG);
-	int nWend = GetDlgItemInt(IDC_EDIT_WEND);
-	int nWstep = GetDlgItemInt(IDC_EDIT_WSTEP);
-	SetWavRange(nWbeg,nWend,nWstep);
-*/
-	//GetWavRange();
-
-	//[*PARAmeter:FITn arg <CR>]
-	//[*para:fitn] - not tested
-	/*double Fit0 = 4.742971e+00;
-	double Fit1 = 3.260666e-01;
-	double Fit2 = -7.163340e-05;
-	double Fit3 = 6.427100e-08;
-	double Fit4 = -2.238460e-11;*/
-
-	//double result;
-
-	//[LabView Sample]
-	/*double Fit0 = 8.7753E+2;
-	double Fit1 = 3.8982E+0;
-	double Fit2 = -4.4203E-3;
-	double Fit3 = 1.4131E-5;
-	double Fit4 =-4.1631E-8;
-	double Fit5 =5.1075E-11;*/
-
-	//[*RDUSR2\s0]
-	/*double Fit0 = 1.595819988E+03;
-	double Fit1 = -1.380533351E-01;
-	double Fit2 = -6.506613253E-05;
-	double Fit3 = +1.141395153E-08;
-	double Fit4 = -3.256433466E-11+2.3;*/
-
-	//double result;//,result02;
-	////double offset = -173;
-	//result = Fit0 + Fit1*0 +Fit2*1 + Fit3*2+ Fit4*3;
-	////result += offset;
-	//CString str,strAll;
-	//str.Format(L"pixel 512 %f", result);
-	//AfxMessageBox(str);
-
-	//strAll += str;
-	//strAll += L"\r\n";
-
-	///*result02 = (result - (-4.4203E-3*29.8) - 1.4131E-5) / (1 + (8.7753E+2*29.8) + 3.8982E+0);
-	//str.Format(L"pixel 512 temperature drift %f", result02);
-	//AfxMessageBox(str);*/
-
-
-	//result = Fit0 + Fit1*1 +Fit2*1 + Fit3*2+ Fit4*3;
-	////result += offset;
-	//str.Format(L"pixel 511 %f", result);
-	//AfxMessageBox(str);
-
-	//strAll += str;
-	//strAll += L"\r\n";
-
-	///*result02 = (result - (-4.4203E-3*29.8) - 1.4131E-5) / (1 + (8.7753E+2*29.8) + 3.8982E+0);
-	//str.Format(L"pixel 511 temperature drift %f", result02);
-	//AfxMessageBox(str);*/
-
-	//result = Fit0 + Fit1*500 +Fit2*2 + Fit3*3 + Fit4*4;
-	////result += offset;
-	//str.Format(L"pixel %d %f", 512-500 ,result);
-	//AfxMessageBox(str);
-
-	///*result02 = (result - (-4.4203E-3*29.8) - 1.4131E-5) / (1 + (8.7753E+2*29.8) + 3.8982E+0);
-	//str.Format(L"pixel 12 temperature drift %f", result02);
-	//AfxMessageBox(str);*/
-
-	//strAll += str;
-	//strAll += L"\r\n";
-
-	//result = Fit0 + Fit1*511 +Fit2*2 + Fit3*3+ Fit4*4;
-	////result += offset;
-	//str.Format(L"pixel %d %f", 512-511, result);
-	//AfxMessageBox(str);
-
-	///*result02 = (result - (-4.4203E-3*29.8) - 1.4131E-5) / (1 + (8.7753E+2*29.8) + 3.8982E+0);
-	//str.Format(L"pixel 0 temperature drift %f", result02);
-	//AfxMessageBox(str);*/
-
-	//strAll += str;
-
-	//AfxMessageBox(strAll);
-	////CString str;
-	////result = Fit0 + Fit1*2 +Fit2*(2**2) + Fit3*(2**3)+ Fit4*(2**4) + Fit5*(2**5);
-	///*result = Fit0 + Fit1*2 +Fit2*(2^2) + Fit3*(2^3)+ Fit4*(2^4) + Fit5*(2^5);
-	//str.Format(L"pixel2 %f", result);
-	//AfxMessageBox(str);*/
-
-	///*result02 = (result - (-4.4203E-3*29.8) - 1.4131E-5) / (1 + (8.7753E+2*29.8) + 3.8982E+0);
-	//str.Format(L"pixel2 temperature drift %f", result02);
-	//AfxMessageBox(str);*/
-
-	//Certificate of Conformance
-	//Calibration coefficients - A + B1*pix + B2*pix^2 + B3*pix^3 + B4*pix^4 + B5*pix^5, pix = 0..511
-	//double dA = 1.595820E+03; //Intercept,A
-	//double B1 = -1.380533E-01; //First coefficient, B1
-	//double B2 = -6.506613E-05;//Second coefficient, B2
-	//double B3 = 1.141395E-08;//Third coefficient, B3
-	//double B4 = -3.256433E-11;//Fourth coefficient, B4
-	//double B5 = 2.334266E-14;//Fifth coefficient, B5
-	////Temperature coefficients -  (dLamda - b*dTemperature - b0) / (1 + a*dTemperature + a0);
-	//double a  =  4.049996E-06;
-	//double a0 = -1.201354E-04;
-	//double b  = -5.979490E-03;
-	//double b0 =  1.781207E-01;
-
-
-////////////////////////////////////////////////////////////////////////////////////////////////////
 	double dWavLen = 0.0;
 	double dWavLenF = 0.0;
 	double dTemperature = MeasureTemperature();
@@ -1629,7 +1645,7 @@ void CThicknessMeas_ProtoDlg::OnBnClickedBtSetWavRange()
 
 	int nCnt = 0;
 
-	for(int i = 0; i<512/*+122*/; i++)
+	for(int i = 0; i<512; i++)
 	{
 		dWavLen = WavLenCalib((double)i);
 		//dWavLen = WavLenFit(i);

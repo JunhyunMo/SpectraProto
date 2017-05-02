@@ -60,20 +60,25 @@ protected:
 
 	FT_HANDLE m_ftHandle;
 	int		  m_nTotalScan,m_nIMON_USB_Recon_Cnt,m_nFFT_DoubleFault;
-	//int	      m_nIMON_BitErr;
+	int	      m_nScanElapse;
+	double    m_dMinWav,m_dMaxWav;
+	BOOL	  m_bIsXAxisWav;
+	BOOL	  m_bTemperFix;
+
 	CString	  DummyMeasure();
 	CString   WriteFwCommand(CString strCmd);
 	CString   WriteFwCommand2(CString strCmd);
 	void	  IMON_Reconnect();
 	
-	void      GetMeasConfig();
+	//void      GetMeasConfig();
 	void	  GetWavRange();
-	void	  SetWavRange(int wbeg, int wend, int wstep);
+	//void	  SetWavRange(int wbeg, int wend, int wstep);
 	void	  FFTtest();
 	double    WavLenCalib(double pix); // Wavelength Calibration - 파장교정
 	double	  FixTemperDrift(double dWavLen, double dTemperature); // Compensation for Temperature Drift - 온도편차보정
 	double    m_dTemperature;
 	double	  MeasureTemperature();
+	void	  FillXaxisData(BOOL bWavelengh);
 
 	//chart
 	CChartViewer m_ChartViewer;
