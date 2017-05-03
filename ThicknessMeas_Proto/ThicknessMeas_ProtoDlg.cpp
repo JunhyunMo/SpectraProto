@@ -65,6 +65,7 @@ CThicknessMeas_ProtoDlg::CThicknessMeas_ProtoDlg(CWnd* pParent /*=NULL*/)
 	m_nTotalScan = 0;
 	m_nIMON_USB_Recon_Cnt = 0;
 	m_nFFT_DoubleFault = 0;
+	m_nCnt_TemperChange = 0;
 	m_nScanElapse = 0;
 
 	m_strChartTitle = L"";
@@ -116,10 +117,11 @@ BEGIN_MESSAGE_MAP(CThicknessMeas_ProtoDlg, CDialogEx)
 	ON_BN_CLICKED(IDC_BT_QUIT, &CThicknessMeas_ProtoDlg::OnBnClickedBtQuit)
 	ON_CONTROL(CVN_ViewPortChanged, IDC_CHART, OnViewPortChanged)
 	ON_BN_CLICKED(IDC_BT_WR_CMD, &CThicknessMeas_ProtoDlg::OnBnClickedBtWrCmd)
-	ON_BN_CLICKED(IDC_BT_SET_WAV_RANGE, &CThicknessMeas_ProtoDlg::OnBnClickedBtSetWavRange)
+	ON_BN_CLICKED(IDC_BT_SHOW_WAV_LEN, &CThicknessMeas_ProtoDlg::OnBnClickedBtShowWavLen)
 	ON_BN_CLICKED(IDC_BT_DRAW_CHART, &CThicknessMeas_ProtoDlg::OnBnClickedBtDrawChart)
 	ON_BN_CLICKED(IDC_BT_FFT, &CThicknessMeas_ProtoDlg::OnBnClickedBtFft)
 	ON_BN_CLICKED(IDC_BT_FFT_STOP, &CThicknessMeas_ProtoDlg::OnBnClickedBtFftStop)
+	ON_BN_CLICKED(IDC_CHK_TEMPER_FIX, &CThicknessMeas_ProtoDlg::OnBnClickedChkTemperFix)
 END_MESSAGE_MAP()
 
 
@@ -184,9 +186,10 @@ BOOL CThicknessMeas_ProtoDlg::OnInitDialog()
 	SetDlgItemInt(IDC_EDIT_NG,m_nIMON_USB_Recon_Cnt);
 	
 	SetDlgItemInt(IDC_EDIT_FREQUENCY,3000);
+
 	SetDlgItemInt(IDC_EDIT_EXP_TIME,3);
 	SetDlgItemInt(IDC_EDIT_FFT_COUNT,100);
-	SetDlgItemInt(IDC_EDIT_REP_CYC,100);
+	SetDlgItemInt(IDC_EDIT_REP_CYC,50);
 
 	((CComboBox*)GetDlgItem(IDC_COMBO_XAXIS))->SetCurSel(0);
 
@@ -940,8 +943,7 @@ CString CThicknessMeas_ProtoDlg::WriteFwCommand(CString strCmd)
 			strLog.Format(L"%s",TRxBuffer);
 			strRet.Format(L"%s",TRxBuffer);
 			DisplayLog(strLog);
-//for test MJH
-//GetLog()->Debug(strRet.GetBuffer());  //?
+
 			if(strRet.Left(1) == 0x15) //15 hex - NACK
 			{
 				SetDlgItemText(IDC_EDIT_MEAS,L"NACK");
@@ -1033,59 +1035,12 @@ CString CThicknessMeas_ProtoDlg::WriteFwCommand2(CString strCmd)
 	return strRet;
 }
 
-//void  CThicknessMeas_ProtoDlg::GetMeasConfig()
-//{
-//	GetWavRange(); //Get wavelength range - *CONFigure:WRANge wbeg wend wstp <CR>
-//}
-
-void CThicknessMeas_ProtoDlg::GetWavRange()
-{
-	/*CString str = WriteFwCommand(L"*CONFigure:WRANge?");
-	str.Replace(L"\r",L"\r\n");*/
-
-	CString strRange = L"";
-
-	CString str = WriteFwCommand(L"*para:wavbeg?");
-	//str.Replace(L"\r",L"\r\n");
-	strRange += str;
-	str = WriteFwCommand(L"*para:wavend?");
-	//str.Replace(L"\r",L"\r\n");
-	strRange += str;
-
-	//str = WriteFwCommand(L"*CONFigure:WRANge?");
-	////str.Replace(L"\r",L"\r\n");
-	//strRange += str;
-
-	SetDlgItemText(IDC_ST_WAV_RANGE,strRange);
-}
-
-//void CThicknessMeas_ProtoDlg::SetWavRange(int wbeg, int wend, int wstep)
-//{
-	//CString strCMD, str1,str2,str3;
-	//strCMD.Format(L"*CONFigure:BEGin %d", wbeg);
-	//str1 = WriteFwCommand(strCMD);
-	//strCMD.Format(L"*CONFigure:END %d", wend);
-	//str2 = WriteFwCommand(strCMD);
-	//strCMD.Format(L"*CONFigure:WSTP %d", wstep);
-	//str3 = WriteFwCommand(strCMD);
-
-	//if(str1.Left(1) == 0x06 && str2.Left(1) == 0x06 && str3.Left(1) == 0x06) //ACK
-	//{
-	//	m_strMeasure = L"Wavelength range is configured.";
-	//}
-	//else
-	//	m_strMeasure = L"Wavelength range configuration failed.";
-
-	//UpdateData(FALSE);
-//}
-
-
-
 //////////////////////////Chart
 // View port changed event
 void CThicknessMeas_ProtoDlg::OnViewPortChanged()
 {
     //drawChart(&m_ChartViewer);
+	;
 }
 
 // A utility to shift a new data value into a data array
@@ -1462,17 +1417,18 @@ void CThicknessMeas_ProtoDlg::FFTtest()
 
 	KillTimer(FFT);
 
-	double dCurTemp = 0.0;
-	if(m_bTemperFix == TRUE) //온도편차보정 적용조건
-	{
-		dCurTemp = MeasureTemperature();;
-	}
+	//double dCurTemp = 0.0;
+	//if(m_bTemperFix == TRUE) //온도편차보정 적용조건 TO-DO
+	//{
+	//	dCurTemp = MeasureTemperature();
+	//}
 
 	CString strCmd = L"*MEASure:FSTMEASure";
 
 	m_strChartTitle = strCmd;
 
 	WriteFwCommand2(strCmd);
+
 
 	DWORD RxBytes = 1024+1;
 	DWORD BytesReceived; 
@@ -1561,11 +1517,29 @@ void CThicknessMeas_ProtoDlg::FFTtest()
 		SetDlgItemInt(IDC_EDIT_NG,m_nIMON_USB_Recon_Cnt);
 	}
 
-	if(m_bTemperFix == TRUE) // && 온도가 변했으면...  //TO-DO
-	{
-		//온도 보정
-		;
-	}
+	//if(m_bTemperFix == TRUE && m_dTemperature != dCurTemp) //온도편차보정 TO-DO
+	//{
+	//	m_nCnt_TemperChange++;
+	//	SetDlgItemInt(IDC_EDIT_TEMPER_CHANGE,m_nCnt_TemperChange);
+
+	//	double dWavLen = 0.0;
+	//	double dWavLenF = 0.0;
+	//
+	//	m_dTemperature = dCurTemp;
+
+	//	for(int i = 0; i<512; i++)
+	//	{
+	//		dWavLen = m_nDataArray[i];
+	//	
+	//		dWavLenF = FixTemperDrift(dWavLen, m_dTemperature);
+	//	
+	//		m_nDataArray[i] = dWavLenF;
+	//	}
+
+	//	CString strSensorTemper;
+	//	strSensorTemper.Format(L"Temperature: %.1f",m_dTemperature);
+	//	SetDlgItemText(IDC_EDIT_SENSOR_TEMPERATURE, strSensorTemper);
+	//}
 
 	DrawFFTChart(&m_ChartViewer);
 	
@@ -1636,7 +1610,7 @@ void CThicknessMeas_ProtoDlg::IMON_Reconnect()
 	SetDlgItemText(IDC_ST_IMON_INFO,str);
 }
 
-void CThicknessMeas_ProtoDlg::OnBnClickedBtSetWavRange()
+void CThicknessMeas_ProtoDlg::OnBnClickedBtShowWavLen()
 {
 	double dWavLen = 0.0;
 	double dWavLenF = 0.0;
@@ -1648,7 +1622,6 @@ void CThicknessMeas_ProtoDlg::OnBnClickedBtSetWavRange()
 	for(int i = 0; i<512; i++)
 	{
 		dWavLen = WavLenCalib((double)i);
-		//dWavLen = WavLenFit(i);
 		
 		dWavLenF = FixTemperDrift(dWavLen, dTemperature);
 		
@@ -1663,9 +1636,6 @@ void CThicknessMeas_ProtoDlg::OnBnClickedBtSetWavRange()
 	strCnt.Format(L"\tPixel Count : %d", nCnt);
 	strResult += strCnt;
 	AfxMessageBox(strResult);
-	//GetLog()->Debug(strResult.GetBuffer());
-
-	//MeasureTemperature();
 }
 
 double CThicknessMeas_ProtoDlg::WavLenCalib(double pix) //A + B1*pix + B2*pix^2 + B3*pix^3 + B4*pix^4 + B5*pix^5, pix = 0..511
@@ -1681,19 +1651,6 @@ double CThicknessMeas_ProtoDlg::WavLenCalib(double pix) //A + B1*pix + B2*pix^2 
 	
 	return dWavLen;
 }
-
-//double CThicknessMeas_ProtoDlg::WavLenFit(double pix)
-//{
-//	double fit0 =  4.742971e+00;
-//	double fit1 =  3.260666e-01;
-//	double fit2 = -7.163340e-05;
-//	double fit3 =  6.427100e-08;
-//	double fit4 = -2.238460e-11;
-//
-//	double dWavLen = 0.0;
-//	dWavLen = fit0 + fit1*pix + fit2*(pix+2) + fit3*(pix+3) + fit4*(pix+4);
-//	return dWavLen;
-//}
 
 double CThicknessMeas_ProtoDlg::FixTemperDrift(double dWavLen, double dTemperature)
 {
@@ -1715,3 +1672,18 @@ double CThicknessMeas_ProtoDlg::MeasureTemperature()
 	return dTemperature;
 }
 
+void CThicknessMeas_ProtoDlg::OnBnClickedChkTemperFix()
+{
+	int nState = ((CButton*)GetDlgItem(IDC_CHK_TEMPER_FIX))->GetCheck();
+
+	if(nState == BST_CHECKED)
+	{
+		GetDlgItem(IDC_EDIT_TEMPER_CHANGE)->ShowWindow(SW_SHOW);
+		GetDlgItem(IDC_ST_TEMPER_CHANGE)->ShowWindow(SW_SHOW);
+	}
+	else if(nState == BST_UNCHECKED)
+	{
+		GetDlgItem(IDC_EDIT_TEMPER_CHANGE)->ShowWindow(SW_HIDE);
+		GetDlgItem(IDC_ST_TEMPER_CHANGE)->ShowWindow(SW_HIDE);
+	}
+}
