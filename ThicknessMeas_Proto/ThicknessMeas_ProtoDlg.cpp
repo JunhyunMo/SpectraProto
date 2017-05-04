@@ -67,7 +67,8 @@ CThicknessMeas_ProtoDlg::CThicknessMeas_ProtoDlg(CWnd* pParent /*=NULL*/)
 	m_nFFT_DoubleFault = 0;
 	m_nCnt_TemperChange = 0;
 	m_nScanElapse = 0;
-
+	m_nWrongMeasureCnt = 0;
+	
 	m_strChartTitle = L"";
 	m_strCmd = L"";
 	m_dTemperature = 0.0;
@@ -187,9 +188,9 @@ BOOL CThicknessMeas_ProtoDlg::OnInitDialog()
 	
 	SetDlgItemInt(IDC_EDIT_FREQUENCY,3000);
 
-	SetDlgItemInt(IDC_EDIT_EXP_TIME,3);
-	SetDlgItemInt(IDC_EDIT_FFT_COUNT,100);
-	SetDlgItemInt(IDC_EDIT_REP_CYC,50);
+	SetDlgItemInt(IDC_EDIT_EXP_TIME,3); //TINT
+	SetDlgItemInt(IDC_EDIT_FFT_COUNT,100); //512 pixel
+	SetDlgItemInt(IDC_EDIT_REP_CYC,100); //0.1sec
 
 	((CComboBox*)GetDlgItem(IDC_COMBO_XAXIS))->SetCurSel(0);
 
@@ -1356,6 +1357,7 @@ void CThicknessMeas_ProtoDlg::OnBnClickedBtFft()
 	WriteFwCommand(strCmd);
 
 	m_nScanElapse = GetDlgItemInt(IDC_EDIT_REP_CYC);
+	
 	SetTimer(FFT,m_nScanElapse,NULL);
 }
 
@@ -1453,15 +1455,18 @@ void CThicknessMeas_ProtoDlg::FFTtest()
 		//if (BytesReceived == RxBytes) 
 		if (BytesReceived > 0) 
 		{ 
+			double d = 0.0;
 			for(i=0; i<512; i++)
 			{
-				double d = MAKE_WORD(RxBuffer[2+(i-1)*2], RxBuffer [3+(i-1)*2]);
+				d = MAKE_WORD(RxBuffer[2+(i-1)*2], RxBuffer [3+(i-1)*2]);
 				if(d > 0)
 				{
 					m_nDataArrTemp[i] = d;
 				}
 				else
 				{
+					m_nWrongMeasureCnt++;
+					SetDlgItemInt(IDC_EDIT_WRONG_MEAS,m_nWrongMeasureCnt);
 					m_nFFT_DoubleFault++;
 					
 					if(m_nFFT_DoubleFault >= 2)
@@ -1550,7 +1555,7 @@ void CThicknessMeas_ProtoDlg::FFTtest()
 
 	FT_Purge(m_ftHandle, FT_PURGE_RX | FT_PURGE_TX);
 	
-	SetTimer(FFT,100,NULL);
+	SetTimer(FFT,m_nScanElapse,NULL);
 }
 
 void CThicknessMeas_ProtoDlg::IMON_Reconnect()

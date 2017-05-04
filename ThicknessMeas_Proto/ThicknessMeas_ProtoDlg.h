@@ -59,7 +59,7 @@ protected:
 	void Unicode2MBCS(LPWSTR lpData,LPSTR lpRtd);
 
 	FT_HANDLE m_ftHandle;
-	int		  m_nTotalScan,m_nIMON_USB_Recon_Cnt,m_nFFT_DoubleFault,m_nCnt_TemperChange;
+	int		  m_nTotalScan,m_nIMON_USB_Recon_Cnt,m_nFFT_DoubleFault,m_nCnt_TemperChange,m_nWrongMeasureCnt;
 	int	      m_nScanElapse;
 	double    m_dMinWav,m_dMaxWav;
 	BOOL	  m_bIsXAxisWav;
