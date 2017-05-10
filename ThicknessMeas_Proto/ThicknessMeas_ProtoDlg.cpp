@@ -432,21 +432,24 @@ void CThicknessMeas_ProtoDlg::MeasurePower()
 
    err = PM100D_getPowerUnit(m_InstrHdl_PM100D, &power_unit);
  
-   switch(power_unit)
-   {
-      case PM100D_POWER_UNIT_DBM:   unit = "dBm";  break;
-      default:                      unit = "W";    break;
-   }
-
    if(err == VI_SUCCESS)
    {
-	   err = PM100D_measPower(m_InstrHdl_PM100D, &power);
-	   if(err == VI_SUCCESS)
+	   switch(power_unit)
 	   {
-			strLog.Format(L"%15.9f %s", power*(10^9), unit);
-			m_ctlSTpower.SetWindowTextW(strLog);
+		  case PM100D_POWER_UNIT_DBM:   unit = "dBm";  break;
+		  default:                      unit = "W";    break;
 	   }
    }
+   else
+	   return;
+
+	err = PM100D_measPower(m_InstrHdl_PM100D, &power);
+
+	if(err == VI_SUCCESS)
+	{
+		strLog.Format(L"%15.9f %s", power*(10^9), unit);
+		m_ctlSTpower.SetWindowTextW(strLog);
+	}
 }
 
 void CThicknessMeas_ProtoDlg::OnBnClickedBtClosePm100d()
@@ -1274,7 +1277,7 @@ void CThicknessMeas_ProtoDlg::DrawFFTChart(CChartViewer *viewer)
     b->setWidth(520);
 
 	// Configure the x-axis,y-axis with a 10pts Arial Bold axis title
-	c->xAxis()->setTitle("nm","arialbd.ttf", 10);
+	c->xAxis()->setTitle("Wavelength [nm]","arialbd.ttf", 10);
     c->yAxis()->setTitle("Amplitude [counts]", "arialbd.ttf", 10);
 
     // Set the axes width to 2 pixels
@@ -1496,6 +1499,7 @@ void CThicknessMeas_ProtoDlg::FFTtest()
 					nMin = m;
 				}
 			}
+
 			//Data Arrray Rearrange
 			int nContinue = 512-nMin; 
 			for(i=0;i<nContinue;i++)
